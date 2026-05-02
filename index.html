@@ -48,11 +48,19 @@
     </div>
   </div>
 
-  <div class="menu-card" onclick="startWordTest()">
+  <div class="menu-card" onclick="startWordTest('all')">
     <div class="menu-icon-wrap blue">📝</div>
     <div class="menu-text">
       <h3>単語テスト</h3>
-      <p>フラッシュカード形式で学習</p>
+      <p>全単語 · フラッシュカード形式</p>
+    </div>
+    <div class="menu-arrow">›</div>
+  </div>
+  <div class="menu-card" onclick="startWordTest('custom')">
+    <div class="menu-icon-wrap" style="background:rgba(255,149,0,0.1)">✏️</div>
+    <div class="menu-text">
+      <h3>マイ単語テスト</h3>
+      <p>自分で追加した単語だけ</p>
     </div>
     <div class="menu-arrow">›</div>
   </div>
@@ -70,7 +78,10 @@
 <div id="view-word-test" class="view">
   <div class="wt-header">
     <span class="status-badge new" id="wt-label">⚪ 新規</span>
-    <span style="font-size:13px;font-weight:700;color:var(--text2)" id="wt-score">スコア: 0</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="wt-mode" style="font-size:11px;font-weight:700;color:var(--warning);background:rgba(255,149,0,0.1);padding:3px 10px;border-radius:99px;display:none"></span>
+      <span style="font-size:13px;font-weight:700;color:var(--text2)" id="wt-score">スコア: 0</span>
+    </div>
   </div>
 
   <div class="card word-card">
@@ -196,6 +207,27 @@
     </div>
     <button class="btn btn-primary" onclick="addCustomWord()" style="margin-top:4px">追加する ＋</button>
   </div>
+
+  <div class="menu-card" onclick="showView('import')" style="margin-top:4px">
+    <div class="menu-icon-wrap" style="background:rgba(79,126,255,0.1)">📥</div>
+    <div class="menu-text"><h3>一括インポート</h3><p>word,meaning 形式で大量登録</p></div>
+    <div class="menu-arrow">›</div>
+  </div>
+
+  <div class="card" style="margin-top:4px">
+    <div class="section-label" style="margin-bottom:10px">データバックアップ・復元</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.6">学習進捗をバックアップできます。iPhone買い替えやSafariデータ消去の前に。</p>
+    <button class="btn btn-primary" onclick="exportData()" style="margin-bottom:10px">バックアップを作成</button>
+    <div id="export-area" style="display:none">
+      <textarea id="export-output" class="form-input" style="min-height:80px;font-size:11px;font-family:monospace" readonly></textarea>
+      <button class="btn btn-ghost btn-sm" onclick="copyExport()" style="margin-top:6px;width:100%">全選択してコピー</button>
+      <p style="font-size:12px;color:var(--text2);text-align:center;margin-top:6px">このテキストをメモ帳などに保存してください</p>
+    </div>
+    <div style="border-top:1px solid var(--border);margin:14px 0"></div>
+    <div class="section-label" style="margin-bottom:8px">バックアップから復元</div>
+    <textarea class="form-input" id="import-json-paste" placeholder="保存したバックアップのテキストをここに貼り付け" style="min-height:80px;font-size:11px;font-family:monospace"></textarea>
+    <button class="btn btn-ghost" onclick="importFromPaste()" style="margin-top:8px">復元する</button>
+  </div>
 </div>
 
 <!-- ══ MODAL ══ -->
@@ -312,6 +344,7 @@ let sentenceQueue = [];
 let wbFilter = 'all';
 let speechAvailable = typeof speechSynthesis !== 'undefined';
 let allWords = [];   // WORDS + customWords merged
+let testMode = 'all';  // 'all' | 'custom'
 
 function loadData() {
   try {
@@ -444,7 +477,12 @@ function renderHome() {
 // ─────────────────────────────────────────
 // WORD TEST
 // ─────────────────────────────────────────
-function startWordTest() {
+function startWordTest(mode = 'all') {
+  testMode = mode;
+  if (mode === 'custom' && customWords.length === 0) {
+    showToast('マイ単語がまだありません。クイック追加で登録してください');
+    return;
+  }
   wordSessionCount = 0;
   wordSessionCorrect = 0;
   showView('word-test');
@@ -452,14 +490,13 @@ function startWordTest() {
 }
 
 function pickNextWord() {
-  // 優先度1: 今日が期日の単語（復習すべき）
-  const due = allWords.filter(w => isDue(w) && getStatus(w) !== 'new');
+  const pool = testMode === 'custom' ? allWords.filter(w => w.isCustom) : allWords;
+  if (!pool.length) return allWords[Math.floor(Math.random() * allWords.length)];
+  const due = pool.filter(w => isDue(w) && getStatus(w) !== 'new');
   if (due.length) return due[Math.floor(Math.random() * due.length)];
-  // 優先度2: 未学習の新規単語
-  const newW = allWords.filter(w => getStatus(w) === 'new');
+  const newW = pool.filter(w => getStatus(w) === 'new');
   if (newW.length) return newW[Math.floor(Math.random() * newW.length)];
-  // 優先度3: まだ期日でないが練習したい場合（全部）
-  return allWords[Math.floor(Math.random() * allWords.length)];
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 function nextWord() {
@@ -489,6 +526,11 @@ function updateWtProgress() {
   const badge = document.getElementById('wt-label');
   badge.textContent = s==='new' ? '⚪ 新規' : s==='learning' ? '🟡 学習中' : '🟢 習得済み';
   badge.className = 'status-badge ' + s;
+  const modeEl = document.getElementById('wt-mode');
+  if (modeEl) {
+    modeEl.textContent = 'マイ単語';
+    modeEl.style.display = testMode === 'custom' ? 'inline-flex' : 'none';
+  }
 }
 
 function showWordDetail() {
@@ -517,10 +559,11 @@ function showChoices() {
 
 function generateChoices(word, words) {
   const correct = { meaning: word.meaning, isCorrect: true };
-  // 同じ品詞を優先して選ぶ（品詞で絞れてしまうのを防ぐ）
-  const samePos = shuffle(words.filter(w => w.word !== word.word && w.pos === word.pos));
-  const diffPos = shuffle(words.filter(w => w.word !== word.word && w.pos !== word.pos));
-  // 同品詞で5個揃えられればそれだけ、足りなければ他品詞で補填
+  // マイ単語モードで6語以上あれば同プールから、足りなければ全単語から補填
+  const customPool = allWords.filter(w => w.isCustom);
+  const choiceBase = (testMode === 'custom' && customPool.length >= 6) ? customPool : allWords;
+  const samePos = shuffle(choiceBase.filter(w => w.word !== word.word && w.pos === word.pos));
+  const diffPos = shuffle(choiceBase.filter(w => w.word !== word.word && w.pos !== word.pos));
   const pool = [...samePos, ...diffPos].slice(0, 5);
   const wrong = pool.map(w => ({ meaning: w.meaning, isCorrect: false }));
   return shuffle([correct, ...wrong]);
@@ -924,6 +967,44 @@ function renderBrain() {
     </div>
     <div class="card">${catHtml}</div>
   `;
+}
+
+// ─────────────────────────────────────────
+// BACKUP / RESTORE
+// ─────────────────────────────────────────
+function exportData() {
+  const raw = localStorage.getItem(STORE);
+  if (!raw) { showToast('データがありません'); return; }
+  const area = document.getElementById('export-area');
+  const out  = document.getElementById('export-output');
+  out.value = raw;
+  area.style.display = 'block';
+  out.select();
+  showToast('テキストをコピーしてメモ帳などに保存してください');
+}
+
+function copyExport() {
+  const el = document.getElementById('export-output');
+  el.select();
+  el.setSelectionRange(0, 99999);
+  try { document.execCommand('copy'); showToast('コピーしました'); }
+  catch { showToast('手動でコピーしてください'); }
+}
+
+function importFromPaste() {
+  const raw = (document.getElementById('import-json-paste').value || '').trim();
+  if (!raw) { showToast('テキストを貼り付けてください'); return; }
+  try {
+    const data = JSON.parse(raw);
+    if (!data.progress) throw new Error();
+    localStorage.setItem(STORE, raw);
+    loadData();
+    renderHome();
+    document.getElementById('import-json-paste').value = '';
+    showToast(`復元完了 — ${Object.keys(data.progress).length}語の進捗を復元しました`);
+  } catch {
+    showToast('形式が正しくありません。バックアップのテキストをそのまま貼り付けてください');
+  }
 }
 
 // ─────────────────────────────────────────
