@@ -465,6 +465,9 @@ function renderWordCard() {
   document.getElementById('wt-pron').textContent = currentWord.pron ? '/' + currentWord.pron + '/' : '';
   document.getElementById('wt-pos').textContent = currentWord.pos || '';
   document.getElementById('wt-detail').classList.remove('show');
+  document.getElementById('wt-actions').innerHTML =
+    `<button class="btn btn-ghost" onclick="showWordDetail()">わからない 👀</button>
+     <button class="btn btn-primary" onclick="showChoices()">テストする →</button>`;
   document.getElementById('wt-actions').style.display = 'flex';
   document.getElementById('wt-choices').innerHTML = '';
   document.getElementById('wt-choices').style.display = 'none';
