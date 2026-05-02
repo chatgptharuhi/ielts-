@@ -541,9 +541,9 @@ function showWordDetail() {
   document.getElementById('wt-detail').classList.add('show');
   // 「わからない」= quality 1 としてSRS記録（テストはしない）
   updateProgress(currentWord, 1);
-  // テストするボタンだけ残す
+  // 解説を見たら次の単語へ（答えを見た後のテストは無意味）
   document.getElementById('wt-actions').innerHTML =
-    `<button class="btn btn-primary" style="flex:1" onclick="showChoices()">テストする →</button>`;
+    `<button class="btn btn-primary" style="flex:1" onclick="nextWord()">次の単語 →</button>`;
 }
 
 function showChoices() {
