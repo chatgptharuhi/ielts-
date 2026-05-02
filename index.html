@@ -100,14 +100,14 @@
     </div>
   </div>
 
-  <div class="choices-grid" id="wt-choices" style="display:none"></div>
-
   <div class="result-card" id="wt-result">
     <div class="result-title" id="wt-result-title"></div>
     <div class="result-interval" id="wt-result-interval"></div>
     <button class="btn btn-primary" style="margin-top:14px" onclick="nextWord()">次の単語 →</button>
     <button class="btn btn-ghost btn-sm" style="display:block;width:100%;margin-top:8px" onclick="openWordModal(currentWord)">詳細を見る</button>
   </div>
+
+  <div class="choices-grid" id="wt-choices" style="display:none"></div>
 </div>
 
 <!-- ══ SENTENCE TEST ══ -->
@@ -427,9 +427,9 @@ function renderHome() {
 
   const dueCount = allWords.filter(w => isDue(w) && getStatus(w) !== 'new').length;
   document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-box"><div class="stat-num s-new">${newCount}</div><div class="stat-label">未習得</div></div>
-    <div class="stat-box"><div class="stat-num s-learning">${learningCount}</div><div class="stat-label">学習中</div></div>
-    <div class="stat-box"><div class="stat-num s-mastered">${masteredCount}</div><div class="stat-label">習得済み</div></div>`;
+    <div class="stat-box stat-tap" onclick="goToWordbook('new')"><div class="stat-num s-new">${newCount}</div><div class="stat-label">未習得</div></div>
+    <div class="stat-box stat-tap" onclick="goToWordbook('learning')"><div class="stat-num s-learning">${learningCount}</div><div class="stat-label">学習中</div></div>
+    <div class="stat-box stat-tap" onclick="goToWordbook('mastered')"><div class="stat-num s-mastered">${masteredCount}</div><div class="stat-label">習得済み</div></div>`;
   const dueEl = document.getElementById('due-badge');
   if (dueEl) {
     dueEl.textContent = dueCount > 0 ? `${dueCount}語` : '0語';
@@ -547,6 +547,8 @@ function selectWordChoice(btn, meaning, isCorrect) {
   rc.className = 'result-card show ' + (isCorrect ? 'correct' : 'wrong');
   showWordDetailInResult();
   updateWtProgress();
+  // 結果カードが選択肢より上にあるので先頭にスクロール
+  document.getElementById('view-word-test').scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function showWordDetailInResult() {
@@ -623,6 +625,11 @@ function nextSentence() {
 // ─────────────────────────────────────────
 // WORDBOOK
 // ─────────────────────────────────────────
+function goToWordbook(filter) {
+  wbFilter = filter;
+  showView('wordbook');
+}
+
 function setFilter(filter, el) {
   wbFilter = filter;
   document.querySelectorAll('.filter-chip').forEach(t => t.classList.remove('active'));
@@ -631,6 +638,10 @@ function setFilter(filter, el) {
 }
 
 function renderWordbook() {
+  // ホームからのジャンプ時にチップのactive状態を同期
+  document.querySelectorAll('.filter-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.filter === wbFilter);
+  });
   const query = (document.getElementById('wb-search')||{}).value || '';
   let words = allWords.filter(w => {
     if (wbFilter === 'all') return true;

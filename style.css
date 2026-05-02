@@ -122,6 +122,8 @@ html, body {
   padding: 16px 10px; text-align: center; box-shadow: var(--shadow);
 }
 .stat-num { font-size: 30px; font-weight: 700; line-height: 1; }
+.stat-tap { cursor: pointer; transition: transform 0.1s; }
+.stat-tap:active { transform: scale(0.95); }
 .stat-label { font-size: 11px; color: var(--text2); margin-top: 4px; font-weight: 500; }
 .stat-num.s-new { color: var(--text2); }
 .stat-num.s-learning { color: var(--warning); }
