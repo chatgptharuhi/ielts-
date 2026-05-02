@@ -33,6 +33,15 @@
     </div>
   </div>
 
+  <div class="section-title">クイック追加</div>
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input class="form-input" id="q-word" placeholder="単語（英語）" autocapitalize="none" autocorrect="off" style="flex:1;padding:12px">
+      <input class="form-input" id="q-meaning" placeholder="意味（日本語）" style="flex:1.4;padding:12px">
+    </div>
+    <button class="btn btn-primary" onclick="quickAdd()" style="padding:13px">保存する</button>
+  </div>
+
   <div class="section-title">学習モード</div>
   <div class="menu-item" onclick="startWordTest()">
     <div class="menu-icon">📝</div>
@@ -619,6 +628,21 @@ function closeModal(e) {
 // ─────────────────────────────────────────
 // ADD CUSTOM WORD
 // ─────────────────────────────────────────
+function quickAdd() {
+  const word = (document.getElementById('q-word').value||'').trim().toLowerCase();
+  const meaning = (document.getElementById('q-meaning').value||'').trim();
+  if (!word || !meaning) { showToast('単語と意味を入力してください'); return; }
+  if (allWords.find(w => w.word === word)) { showToast(`「${word}」はすでに登録済み`); return; }
+  customWords.push({ id: Date.now(), word, meaning, pos:'', pron:'', usage:'', example:'', exampleJa:'', category:'マイ単語', isCustom: true });
+  rebuildAllWords();
+  saveData();
+  document.getElementById('q-word').value = '';
+  document.getElementById('q-meaning').value = '';
+  document.getElementById('q-word').focus();
+  showToast(`「${word}」を追加しました`);
+  renderHome();
+}
+
 function clearAddForm() {
   ['add-word','add-pron','add-pos','add-meaning','add-usage','add-example','add-example-ja','add-category']
     .forEach(id => { document.getElementById(id).value = ''; });
