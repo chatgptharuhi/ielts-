@@ -73,7 +73,7 @@
 
   <div class="card">
     <div class="word-display">
-      <div class="word-english" id="wt-word"></div>
+      <div class="word-english" id="wt-word" onclick="speak(currentWord.word)" style="cursor:pointer" title="タップで発音"></div>
       <div class="word-pron" id="wt-pron"></div>
       <div class="word-pos-badge" id="wt-pos"></div>
       <br>
@@ -203,7 +203,7 @@
   <div class="modal-box">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
       <div>
-        <div class="modal-word" id="m-word"></div>
+        <div class="modal-word" id="m-word" onclick="speak(this.textContent)" style="cursor:pointer"></div>
         <div class="modal-pron" id="m-pron"></div>
       </div>
       <button class="audio-btn" style="margin:0;flex-shrink:0" id="m-audio-btn">🔊</button>
@@ -587,7 +587,8 @@ function renderWordbook() {
       return `<div class="word-list-item" onclick="openWordModal(allWords.find(x=>x.word==='${w.word}'))">
         <div class="word-list-en">${w.word}</div>
         <div class="word-list-ja">${w.meaning}</div>
-        <div class="status-dot ${s}" title="${labels[s]||''}"></div>
+        <button onclick="event.stopPropagation();speak('${w.word}')" style="background:none;border:none;font-size:20px;padding:4px 2px;cursor:pointer;flex-shrink:0;color:var(--primary)">🔊</button>
+        <div class="status-dot ${s}" title="${labels[s]||''}" style="margin-left:6px"></div>
       </div>`;
     }).join('');
 }
