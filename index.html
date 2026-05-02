@@ -517,7 +517,12 @@ function showChoices() {
 
 function generateChoices(word, words) {
   const correct = { meaning: word.meaning, isCorrect: true };
-  const wrong = shuffle(words.filter(w => w.word !== word.word)).slice(0,5).map(w => ({ meaning: w.meaning, isCorrect: false }));
+  // 同じ品詞を優先して選ぶ（品詞で絞れてしまうのを防ぐ）
+  const samePos = shuffle(words.filter(w => w.word !== word.word && w.pos === word.pos));
+  const diffPos = shuffle(words.filter(w => w.word !== word.word && w.pos !== word.pos));
+  // 同品詞で5個揃えられればそれだけ、足りなければ他品詞で補填
+  const pool = [...samePos, ...diffPos].slice(0, 5);
+  const wrong = pool.map(w => ({ meaning: w.meaning, isCorrect: false }));
   return shuffle([correct, ...wrong]);
 }
 
@@ -915,12 +920,15 @@ function renderBrain() {
 // ─────────────────────────────────────────
 function speak(text) {
   if (!text || !speechAvailable) { showToast('音声非対応のブラウザです'); return; }
+  // iOS Safari: cancel()直後にspeak()すると無視されるバグ → 100ms待つ
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'en-US';
-  u.rate = 0.85;
-  u.pitch = 1;
-  speechSynthesis.speak(u);
+  setTimeout(() => {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    u.rate = 0.85;
+    u.pitch = 1;
+    speechSynthesis.speak(u);
+  }, 100);
 }
 
 // ─────────────────────────────────────────
