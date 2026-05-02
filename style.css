@@ -335,6 +335,18 @@ textarea.form-input { min-height: 120px; resize: vertical; line-height: 1.5; }
 /* ── Empty state ── */
 .empty-state { text-align: center; padding: 48px 20px; color: var(--text2); }
 
+/* ── Sentence choices ── */
+.st-choice-row { display: flex; gap: 8px; align-items: stretch; }
+.st-choice-row .choice-btn { flex: 1; }
+.st-add-btn {
+  width: 44px; flex-shrink: 0; border-radius: 13px;
+  border: 1.5px solid var(--border); background: var(--card);
+  font-size: 20px; cursor: pointer; color: var(--primary);
+  font-family: inherit; transition: all 0.1s;
+}
+.st-add-btn:active { background: var(--primary-light); }
+.st-add-btn:disabled { opacity: 0.3; cursor: default; }
+
 /* ── Brain（外部脳）── */
 .brain-row {
   display: flex; align-items: center; gap: 12px;

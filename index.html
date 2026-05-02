@@ -132,7 +132,10 @@
   </div>
 
   <div class="card">
-    <div class="section-title" style="margin-bottom:10px">空欄に入る単語を選んでください</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="section-title" style="margin-bottom:0">空欄に入る単語を選んでください</div>
+      <button class="audio-circle" style="width:36px;height:36px;font-size:16px;flex-shrink:0" onclick="speakSentence()">🔊</button>
+    </div>
     <p class="sentence-text" id="st-sentence"></p>
     <p class="sentence-ja" id="st-ja"></p>
 
@@ -339,6 +342,7 @@ let currentWord = null;
 let wordSessionCount = 0;
 let wordSessionCorrect = 0;
 let sentenceSessionIdx = 0;
+let currentSentenceQ = null;
 let sentenceSessionCorrect = 0;
 let sentenceQueue = [];
 let wbFilter = 'all';
@@ -634,9 +638,13 @@ function showSentenceQuestion() {
   document.getElementById('st-explanation').style.display = 'none';
   document.getElementById('st-next-area').style.display = 'none';
 
+  currentSentenceQ = q;
   const choices = shuffle([...q.choices]);
   document.getElementById('st-choices').innerHTML = choices.map(c =>
-    `<button class="choice-btn" onclick="selectSentenceChoice(this,'${c}','${q.answer}')">${c}</button>`
+    `<div class="st-choice-row">
+      <button class="choice-btn" onclick="selectSentenceChoice(this,'${c}','${q.answer}')">${c}</button>
+      <button class="st-add-btn" onclick="addChoiceWord('${c}')">＋</button>
+    </div>`
   ).join('');
 }
 
@@ -644,8 +652,10 @@ function selectSentenceChoice(btn, selected, answer) {
   const q = sentenceQueue[sentenceSessionIdx];
   document.querySelectorAll('#st-choices .choice-btn').forEach(b => {
     b.disabled = true;
-    if (b.textContent === answer) b.classList.add('reveal');
+    if (b.textContent.trim() === answer) b.classList.add('reveal');
   });
+  // ＋ボタンも無効化
+  document.querySelectorAll('#st-choices .st-add-btn').forEach(b => b.disabled = true);
   const isCorrect = selected === answer;
   if (isCorrect) {
     btn.classList.add('correct');
@@ -661,6 +671,27 @@ function selectSentenceChoice(btn, selected, answer) {
   document.getElementById('st-next-area').style.display = 'block';
   sentenceSessionIdx++;
   document.getElementById('st-score').textContent = `正解 ${sentenceSessionCorrect}/${sentenceSessionIdx}`;
+}
+
+function speakSentence() {
+  if (!currentSentenceQ) return;
+  // 答えを空欄に埋めた完全な文を読み上げ
+  const text = currentSentenceQ.sentence.replace('_____', currentSentenceQ.answer);
+  speak(text);
+}
+
+function addChoiceWord(word) {
+  const w = word.trim().toLowerCase();
+  const existing = allWords.find(x => x.word === w);
+  if (existing) {
+    // すでにある単語はモーダルで意味を表示
+    openWordModal(existing);
+    return;
+  }
+  customWords.push({ id: Date.now(), word: w, meaning: '（意味を入力）', pos: '', pron: '', usage: '', example: '', exampleJa: '', category: 'マイ単語', isCustom: true });
+  rebuildAllWords();
+  saveData();
+  showToast(`「${w}」を追加 — 単語帳で意味を確認してね`);
 }
 
 function nextSentence() {
