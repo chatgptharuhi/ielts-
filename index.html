@@ -260,6 +260,15 @@
   </div>
 </div>
 
+<!-- ══ BRAIN (外部脳) ══ -->
+<div id="view-brain" class="view">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div class="page-title" style="margin-bottom:0">外部脳</div>
+    <button class="btn btn-ghost btn-sm" onclick="renderBrain()">更新</button>
+  </div>
+  <div id="brain-content"></div>
+</div>
+
 <!-- ══ TOAST ══ -->
 <div class="toast" id="toast"></div>
 
@@ -277,11 +286,11 @@
   <button class="nav-btn" data-view="view-wordbook" onclick="showView('wordbook')">
     <span class="icon">📚</span><span>単語帳</span>
   </button>
+  <button class="nav-btn" data-view="view-brain" onclick="showView('brain')">
+    <span class="icon">📊</span><span>分析</span>
+  </button>
   <button class="nav-btn" data-view="view-add" onclick="showView('add')">
     <span class="icon">＋</span><span>追加</span>
-  </button>
-  <button class="nav-btn" data-view="view-import" onclick="showView('import')">
-    <span class="icon">📥</span><span>一括</span>
   </button>
 </nav>
 
@@ -393,6 +402,7 @@ function showView(name) {
   if (name === 'wordbook') renderWordbook();
   if (name === 'add') clearAddForm();
   if (name === 'import') renderImportStats();
+  if (name === 'brain') renderBrain();
   window.scrollTo(0,0);
 }
 
@@ -759,6 +769,145 @@ function bulkImport() {
 function renderImportStats() {
   const el = document.getElementById('import-stats');
   if (el) el.textContent = allWords.length + '語';
+}
+
+// ─────────────────────────────────────────
+// BRAIN（外部脳）分析画面
+// ─────────────────────────────────────────
+function renderBrain() {
+  const t = today();
+  let studiedCount = 0, totalCorrect = 0, totalWrong = 0, todayCount = 0;
+
+  allWords.forEach(w => {
+    const p = progress[w.word];
+    if (!p) return;
+    const c = p.totalCorrect || 0;
+    const ww = p.totalWrong || 0;
+    totalCorrect += c;
+    totalWrong += ww;
+    if (c + ww > 0) studiedCount++;
+    if (p.lastSeen === t) todayCount++;
+  });
+
+  const acc = (totalCorrect + totalWrong) > 0
+    ? Math.round(totalCorrect / (totalCorrect + totalWrong) * 100) : 0;
+
+  // 苦手単語: ミス数降順、2回以上テスト済みのみ
+  const weakWords = allWords.map(w => {
+    const p = progress[w.word] || {};
+    const wrong = p.totalWrong || 0;
+    const correct = p.totalCorrect || 0;
+    const total = wrong + correct;
+    const missRate = total >= 2 ? Math.round(wrong / total * 100) : null;
+    return { word: w.word, meaning: w.meaning, wrong, correct, total, missRate };
+  }).filter(s => s.wrong >= 1 && s.total >= 2)
+    .sort((a, b) => b.wrong - a.wrong || (b.missRate||0) - (a.missRate||0))
+    .slice(0, 10);
+
+  // カテゴリ別: 3回以上テスト済みのカテゴリのみ、正答率低い順
+  const catMap = {};
+  allWords.forEach(w => {
+    const cat = w.category || 'その他';
+    if (!catMap[cat]) catMap[cat] = { correct: 0, wrong: 0 };
+    const p = progress[w.word] || {};
+    catMap[cat].correct += p.totalCorrect || 0;
+    catMap[cat].wrong   += p.totalWrong || 0;
+  });
+  const catArr = Object.entries(catMap)
+    .map(([cat, s]) => {
+      const total = s.correct + s.wrong;
+      const rate = total >= 3 ? Math.round(s.correct / total * 100) : null;
+      return { cat, correct: s.correct, wrong: s.wrong, total, rate };
+    })
+    .filter(c => c.total >= 3)
+    .sort((a, b) => (a.rate ?? 100) - (b.rate ?? 100));
+
+  // 最近7日の学習数
+  const last7 = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0, 10);
+    const count = allWords.filter(w => (progress[w.word]||{}).lastSeen === ds).length;
+    last7.push({ ds, count, label: ['日','月','火','水','木','金','土'][d.getDay()] });
+  }
+  const maxDay = Math.max(...last7.map(d => d.count), 1);
+
+  // ── HTML生成 ──
+  const topWordsHtml = weakWords.length === 0
+    ? `<div style="padding:24px;text-align:center;color:var(--text2);font-size:14px">単語テストを重ねるとここに苦手単語が表示されます</div>`
+    : weakWords.map((s, i) => `
+      <div class="brain-row" onclick="openWordModal(allWords.find(x=>x.word==='${s.word.replace(/'/g,"\\'")}'))">
+        <div class="brain-rank">${i + 1}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:600">${s.word}</div>
+          <div style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.meaning}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:8px">
+          <div style="font-size:14px;font-weight:700;color:var(--error)">✗ ${s.wrong}</div>
+          <div style="font-size:11px;color:var(--text2)">${s.missRate !== null ? s.missRate + '%ミス' : ''}</div>
+        </div>
+      </div>`).join('');
+
+  const catHtml = catArr.length === 0
+    ? `<div style="padding:12px 0;text-align:center;color:var(--text2);font-size:14px">まだデータが足りません</div>`
+    : catArr.map(c => {
+        const pct = c.rate ?? 0;
+        const color = pct >= 80 ? 'var(--success)' : pct >= 60 ? 'var(--warning)' : 'var(--error)';
+        return `<div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+            <span style="font-size:14px;font-weight:500">${c.cat}</span>
+            <span style="font-size:13px;font-weight:700;color:${color}">${c.rate !== null ? c.rate + '%' : '—'}</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:${pct}%;background:${color}"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-top:3px">正解 ${c.correct} / 不正解 ${c.wrong}（計 ${c.total}回）</div>
+        </div>`;
+      }).join('');
+
+  const heatHtml = last7.map(d => {
+    const barH = Math.max(Math.round(d.count / maxDay * 52), d.count > 0 ? 6 : 3);
+    const bg = d.count === 0 ? 'var(--border)' : d.count >= 15 ? 'var(--success)' : 'var(--primary)';
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1">
+      <div style="font-size:10px;font-weight:600;color:var(--text2);min-height:14px">${d.count > 0 ? d.count : ''}</div>
+      <div style="width:100%;border-radius:5px;height:${barH}px;background:${bg}"></div>
+      <div style="font-size:10px;color:var(--text2)">${d.label}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('brain-content').innerHTML = `
+    <div class="stats-grid" style="margin-bottom:12px">
+      <div class="stat-box">
+        <div class="stat-num" style="color:var(--primary)">${acc}<span style="font-size:14px;font-weight:500">%</span></div>
+        <div class="stat-label">総正答率</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">${studiedCount}</div>
+        <div class="stat-label">学習済み語</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" style="color:var(--warning)">${todayCount}</div>
+        <div class="stat-label">今日学習</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px">
+      <div class="section-label" style="margin-bottom:8px">最近7日の学習数</div>
+      <div style="display:flex;align-items:flex-end;gap:5px;height:78px">
+        ${heatHtml}
+      </div>
+    </div>
+
+    <div style="font-size:15px;font-weight:700;margin-bottom:8px">
+      苦手単語 TOP${weakWords.length}
+    </div>
+    <div class="wb-card" style="margin-bottom:16px">${topWordsHtml}</div>
+
+    <div style="font-size:15px;font-weight:700;margin-bottom:12px">
+      カテゴリ別 正答率
+    </div>
+    <div class="card">${catHtml}</div>
+  `;
 }
 
 // ─────────────────────────────────────────

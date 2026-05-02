@@ -332,6 +332,22 @@ textarea.form-input { min-height: 120px; resize: vertical; line-height: 1.5; }
 
 /* ── Empty state ── */
 .empty-state { text-align: center; padding: 48px 20px; color: var(--text2); }
+
+/* ── Brain（外部脳）── */
+.brain-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 16px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.1s;
+}
+.brain-row:last-child { border-bottom: none; }
+.brain-row:active { background: var(--bg); }
+.brain-rank {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--border); color: var(--text2);
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
 .empty-state .icon { font-size: 44px; margin-bottom: 12px; }
 
 /* ── 後方互換 (sentence test / modal) ── */
