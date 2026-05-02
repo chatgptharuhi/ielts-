@@ -96,6 +96,15 @@
     <button class="btn btn-primary" onclick="showChoices()">テストする →</button>
   </div>
 
+  <div class="result-card" id="wt-result">
+    <div class="result-title" id="wt-result-title"></div>
+    <div class="result-interval" id="wt-result-interval"></div>
+    <button class="btn btn-primary" style="margin-top:14px" onclick="nextWord()">次の単語 →</button>
+    <button class="btn btn-ghost btn-sm" style="display:block;width:100%;margin-top:8px" onclick="openWordModal(currentWord)">詳細を見る</button>
+  </div>
+
+  <div class="choices-grid" id="wt-choices" style="display:none"></div>
+
   <div class="detail-panel" id="wt-detail">
     <div class="detail-label">意味</div>
     <div class="detail-meaning" id="wt-d-meaning"></div>
@@ -110,15 +119,6 @@
       <button class="audio-circle" style="width:38px;height:38px;font-size:16px;margin-top:10px" onclick="speak(currentWord.example)">🔊</button>
     </div>
   </div>
-
-  <div class="result-card" id="wt-result">
-    <div class="result-title" id="wt-result-title"></div>
-    <div class="result-interval" id="wt-result-interval"></div>
-    <button class="btn btn-primary" style="margin-top:14px" onclick="nextWord()">次の単語 →</button>
-    <button class="btn btn-ghost btn-sm" style="display:block;width:100%;margin-top:8px" onclick="openWordModal(currentWord)">詳細を見る</button>
-  </div>
-
-  <div class="choices-grid" id="wt-choices" style="display:none"></div>
 </div>
 
 <!-- ══ SENTENCE TEST ══ -->
@@ -295,7 +295,7 @@
 <!-- ══ BRAIN (外部脳) ══ -->
 <div id="view-brain" class="view">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-    <div class="page-title" style="margin-bottom:0">外部脳</div>
+    <div class="page-title" style="margin-bottom:0">弱点レポート</div>
     <button class="btn btn-ghost btn-sm" onclick="renderBrain()">更新</button>
   </div>
   <div id="brain-content"></div>
@@ -588,8 +588,10 @@ function selectWordChoice(btn, meaning, isCorrect) {
   }
   const rc = document.getElementById('wt-result');
   rc.className = 'result-card show ' + (isCorrect ? 'correct' : 'wrong');
+  document.getElementById('wt-choices').style.display = 'none';
   showWordDetailInResult();
   updateWtProgress();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
   // 結果カードが選択肢より上にあるので先頭にスクロール
   document.getElementById('view-word-test').scrollTo({ top: 0, behavior: 'smooth' });
 }
