@@ -17,46 +17,50 @@
 
 <!-- ══ HOME ══ -->
 <div id="view-home" class="view active">
-  <div class="page-title">IELTS 単語帳</div>
+  <div style="padding-top:4px;margin-bottom:16px">
+    <h1 style="font-size:24px;font-weight:700">こんにちは！</h1>
+    <div style="margin-top:6px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:14px;color:var(--text2)">今日の復習</span>
+      <span id="due-badge" class="due-badge"></span>
+    </div>
+  </div>
 
-  <div id="due-badge" style="display:block;text-align:center;padding:10px;border-radius:12px;font-size:15px;font-weight:700;margin-bottom:10px"></div>
   <div class="stats-grid" id="stats-grid"></div>
 
-  <div class="card" style="margin-bottom:16px">
-    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-      <span style="font-size:14px;color:var(--text2)">習得進捗</span>
-      <span id="progress-pct" style="font-size:14px;font-weight:700;color:var(--primary)">0%</span>
+  <div class="card" style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:14px;font-weight:500">学習進捗</span>
+      <span id="progress-pct" style="font-size:14px;font-weight:700;color:var(--success)">0%</span>
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-    <div class="accuracy-row" style="margin-top:12px">
-      <span class="accuracy-label">総正答率</span>
-      <span class="accuracy-value" id="accuracy-val">—</span>
+    <div style="display:flex;justify-content:space-between;margin-top:10px">
+      <span style="font-size:13px;color:var(--text2)">総正答率</span>
+      <span id="accuracy-val" style="font-size:14px;font-weight:700;color:var(--primary)">—</span>
     </div>
   </div>
 
-  <div class="section-title">クイック追加</div>
-  <div class="card" style="margin-bottom:16px">
-    <div style="display:flex;gap:8px;margin-bottom:8px">
-      <input class="form-input" id="q-word" placeholder="単語（英語）" autocapitalize="none" autocorrect="off" style="flex:1;padding:12px">
-      <input class="form-input" id="q-meaning" placeholder="意味（日本語）" style="flex:1.4;padding:12px">
+  <div class="card" style="margin-bottom:12px">
+    <div class="section-label">クイック追加</div>
+    <div class="quick-add-row">
+      <input class="form-input" id="q-word" placeholder="英単語" autocapitalize="none" autocorrect="off">
+      <input class="form-input" id="q-meaning" placeholder="意味">
+      <button class="btn btn-primary" onclick="quickAdd()">保存</button>
     </div>
-    <button class="btn btn-primary" onclick="quickAdd()" style="padding:13px">保存する</button>
   </div>
 
-  <div class="section-title">学習モード</div>
-  <div class="menu-item" onclick="startWordTest()">
-    <div class="menu-icon">📝</div>
+  <div class="menu-card" onclick="startWordTest()">
+    <div class="menu-icon-wrap blue">📝</div>
     <div class="menu-text">
       <h3>単語テスト</h3>
-      <p>英語→日本語 6択、SRS管理</p>
+      <p>フラッシュカード形式で学習</p>
     </div>
     <div class="menu-arrow">›</div>
   </div>
-  <div class="menu-item" onclick="startSentenceTest()">
-    <div class="menu-icon">📖</div>
+  <div class="menu-card" onclick="startSentenceTest()">
+    <div class="menu-icon-wrap green">📖</div>
     <div class="menu-text">
       <h3>文章問題</h3>
-      <p>IELTS風 空欄補充 50問</p>
+      <p>文脈から単語を推測</p>
     </div>
     <div class="menu-arrow">›</div>
   </div>
@@ -64,54 +68,46 @@
 
 <!-- ══ WORD TEST ══ -->
 <div id="view-word-test" class="view">
-  <div id="wt-progress" style="margin-bottom:12px">
-    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-      <span style="font-size:13px;color:var(--text2)" id="wt-label">単語テスト</span>
-      <span style="font-size:13px;font-weight:700;color:var(--primary)" id="wt-score"></span>
-    </div>
-    <div class="progress-bar"><div class="progress-fill" id="wt-prog-fill" style="width:0%"></div></div>
+  <div class="wt-header">
+    <span class="status-badge new" id="wt-label">⚪ 新規</span>
+    <span style="font-size:13px;font-weight:700;color:var(--text2)" id="wt-score">スコア: 0</span>
   </div>
 
-  <div class="card">
-    <div class="word-display">
-      <div class="word-english" id="wt-word" onclick="speak(currentWord.word)" style="cursor:pointer" title="タップで発音"></div>
-      <div class="word-pron" id="wt-pron"></div>
-      <div class="word-pos-badge" id="wt-pos"></div>
-      <br>
-      <button class="audio-btn" onclick="speak(currentWord.word)">🔊 読み上げ</button>
+  <div class="card word-card">
+    <div class="word-english" id="wt-word" onclick="speak(currentWord.word)"></div>
+    <div class="word-pron" id="wt-pron"></div>
+    <span class="word-pos-chip" id="wt-pos"></span>
+    <button class="audio-circle" onclick="speak(currentWord.word)">🔊</button>
+  </div>
+
+  <div class="word-actions" id="wt-actions">
+    <button class="btn btn-ghost" onclick="showWordDetail()">わからない</button>
+    <button class="btn btn-primary" onclick="showChoices()">テストする →</button>
+  </div>
+
+  <div class="detail-panel" id="wt-detail">
+    <div class="detail-label">意味</div>
+    <div class="detail-meaning" id="wt-d-meaning"></div>
+    <div class="detail-section">
+      <div class="detail-label">用法</div>
+      <p id="wt-d-usage"></p>
     </div>
-
-    <div class="detail-panel" id="wt-detail">
-      <div class="detail-label">意味</div>
-      <div class="detail-meaning" id="wt-d-meaning"></div>
-      <div class="detail-section">
-        <div class="detail-label">用法</div>
-        <p id="wt-d-usage"></p>
-      </div>
-      <div class="detail-section">
-        <div class="detail-label">例文</div>
-        <p id="wt-d-example" class="en"></p>
-        <p id="wt-d-example-ja" style="font-size:14px;color:var(--text2);margin-top:4px"></p>
-        <button class="audio-btn" style="margin-top:10px;margin-bottom:0" onclick="speak(currentWord.example)">🔊 例文を聞く</button>
-      </div>
-    </div>
-
-    <div class="word-actions" id="wt-actions">
-      <button class="btn btn-ghost" onclick="showWordDetail()">わからない 👀</button>
-      <button class="btn btn-primary" onclick="showChoices()">テストする →</button>
-    </div>
-
-    <div class="result-banner" id="wt-result"></div>
-    <div class="choices-grid" id="wt-choices" style="display:none"></div>
-
-    <div id="wt-next-area" style="display:none">
-      <button class="btn btn-primary" onclick="nextWord()">次の単語 →</button>
-      <div style="height:10px"></div>
-      <button class="btn btn-ghost btn-sm" style="display:block;width:100%" onclick="openWordModal(currentWord)">詳細を見る 📚</button>
+    <div class="detail-section">
+      <div class="detail-label">例文</div>
+      <p id="wt-d-example" class="en"></p>
+      <p id="wt-d-example-ja" style="font-size:13px;color:var(--text2);margin-top:4px"></p>
+      <button class="audio-circle" style="width:38px;height:38px;font-size:16px;margin-top:10px" onclick="speak(currentWord.example)">🔊</button>
     </div>
   </div>
 
-  <button class="btn btn-ghost" style="margin-top:8px" onclick="showView('home')">← ホームに戻る</button>
+  <div class="choices-grid" id="wt-choices" style="display:none"></div>
+
+  <div class="result-card" id="wt-result">
+    <div class="result-title" id="wt-result-title"></div>
+    <div class="result-interval" id="wt-result-interval"></div>
+    <button class="btn btn-primary" style="margin-top:14px" onclick="nextWord()">次の単語 →</button>
+    <button class="btn btn-ghost btn-sm" style="display:block;width:100%;margin-top:8px" onclick="openWordModal(currentWord)">詳細を見る</button>
+  </div>
 </div>
 
 <!-- ══ SENTENCE TEST ══ -->
@@ -148,13 +144,16 @@
 <!-- ══ WORDBOOK ══ -->
 <div id="view-wordbook" class="view">
   <div class="page-title">単語帳</div>
-  <input type="search" class="search-bar" placeholder="🔍 単語を検索..." id="wb-search" oninput="renderWordbook()">
-  <div class="filter-tabs" id="wb-filters">
-    <button class="filter-tab active" data-filter="all" onclick="setFilter('all',this)">すべて</button>
-    <button class="filter-tab" data-filter="new" onclick="setFilter('new',this)">未習得</button>
-    <button class="filter-tab" data-filter="learning" onclick="setFilter('learning',this)">学習中</button>
-    <button class="filter-tab" data-filter="mastered" onclick="setFilter('mastered',this)">習得済み</button>
-    <button class="filter-tab" data-filter="custom" onclick="setFilter('custom',this)">マイ単語</button>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="search" class="search-bar" placeholder="単語を検索..." id="wb-search" oninput="renderWordbook()">
+  </div>
+  <div class="filter-row">
+    <button class="filter-chip active" data-filter="all" onclick="setFilter('all',this)">すべて</button>
+    <button class="filter-chip" data-filter="new" onclick="setFilter('new',this)">未習得</button>
+    <button class="filter-chip" data-filter="learning" onclick="setFilter('learning',this)">学習中</button>
+    <button class="filter-chip" data-filter="mastered" onclick="setFilter('mastered',this)">習得済み</button>
+    <button class="filter-chip" data-filter="custom" onclick="setFilter('custom',this)">マイ単語</button>
   </div>
   <div id="wb-list"></div>
 </div>
@@ -418,15 +417,14 @@ function renderHome() {
 
   const dueCount = allWords.filter(w => isDue(w) && getStatus(w) !== 'new').length;
   document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-box"><div class="stat-num new">${newCount}</div><div class="stat-label">未習得</div></div>
-    <div class="stat-box"><div class="stat-num learning">${learningCount}</div><div class="stat-label">学習中</div></div>
-    <div class="stat-box"><div class="stat-num mastered">${masteredCount}</div><div class="stat-label">習得済み</div></div>`;
-  // 今日の復習バッジ
+    <div class="stat-box"><div class="stat-num s-new">${newCount}</div><div class="stat-label">未習得</div></div>
+    <div class="stat-box"><div class="stat-num s-learning">${learningCount}</div><div class="stat-label">学習中</div></div>
+    <div class="stat-box"><div class="stat-num s-mastered">${masteredCount}</div><div class="stat-label">習得済み</div></div>`;
   const dueEl = document.getElementById('due-badge');
   if (dueEl) {
-    dueEl.textContent = dueCount > 0 ? `今日の復習 ${dueCount}語` : '今日の復習なし';
-    dueEl.style.background = dueCount > 0 ? 'var(--warning-light)' : 'var(--success-light)';
-    dueEl.style.color = dueCount > 0 ? 'var(--warning)' : 'var(--success)';
+    dueEl.textContent = dueCount > 0 ? `${dueCount}語` : '0語';
+    dueEl.style.background = dueCount > 0 ? 'var(--warning)' : 'var(--success)';
+    dueEl.style.color = '#fff';
   }
   document.getElementById('progress-fill').style.width = pct+'%';
   document.getElementById('progress-pct').textContent = pct+'%';
@@ -466,21 +464,21 @@ function renderWordCard() {
   document.getElementById('wt-pos').textContent = currentWord.pos || '';
   document.getElementById('wt-detail').classList.remove('show');
   document.getElementById('wt-actions').innerHTML =
-    `<button class="btn btn-ghost" onclick="showWordDetail()">わからない 👀</button>
+    `<button class="btn btn-ghost" onclick="showWordDetail()">わからない</button>
      <button class="btn btn-primary" onclick="showChoices()">テストする →</button>`;
   document.getElementById('wt-actions').style.display = 'flex';
   document.getElementById('wt-choices').innerHTML = '';
   document.getElementById('wt-choices').style.display = 'none';
-  document.getElementById('wt-result').classList.remove('show','correct','wrong');
-  document.getElementById('wt-next-area').style.display = 'none';
+  document.getElementById('wt-result').className = 'result-card';
   updateWtProgress();
 }
 
 function updateWtProgress() {
-  const pct = wordSessionCount > 1 ? Math.round((wordSessionCount-1)/wordSessionCount*100) : 0;
-  document.getElementById('wt-prog-fill').style.width = pct+'%';
-  document.getElementById('wt-score').textContent = `正解 ${wordSessionCorrect}/${wordSessionCount-1}`;
-  document.getElementById('wt-label').textContent = `${getStatus(currentWord)==='new'?'⚪ 新規':getStatus(currentWord)==='learning'?'🟡 学習中':'🟢 習得済み'}`;
+  document.getElementById('wt-score').textContent = `スコア: ${wordSessionCorrect}`;
+  const s = getStatus(currentWord);
+  const badge = document.getElementById('wt-label');
+  badge.textContent = s==='new' ? '⚪ 新規' : s==='learning' ? '🟡 学習中' : '🟢 習得済み';
+  badge.className = 'status-badge ' + s;
 }
 
 function showWordDetail() {
@@ -523,13 +521,16 @@ function selectWordChoice(btn, meaning, isCorrect) {
   if (isCorrect) {
     btn.classList.add('correct');
     wordSessionCorrect++;
-    showResult('wt-result', true, `正解！ ✓　次回: ${nextInterval}日後`);
+    document.getElementById('wt-result-title').textContent = '正解！';
+    document.getElementById('wt-result-interval').textContent = `次回: ${nextInterval}日後`;
   } else {
     btn.classList.add('wrong');
-    showResult('wt-result', false, `不正解。正解は「${currentWord.meaning}」　次回: 1日後`);
+    document.getElementById('wt-result-title').textContent = `不正解　正解: ${currentWord.meaning}`;
+    document.getElementById('wt-result-interval').textContent = '次回: 1日後';
   }
+  const rc = document.getElementById('wt-result');
+  rc.className = 'result-card show ' + (isCorrect ? 'correct' : 'wrong');
   showWordDetailInResult();
-  document.getElementById('wt-next-area').style.display = 'block';
   updateWtProgress();
 }
 
@@ -609,7 +610,7 @@ function nextSentence() {
 // ─────────────────────────────────────────
 function setFilter(filter, el) {
   wbFilter = filter;
-  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.filter-chip').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   renderWordbook();
 }
@@ -630,17 +631,18 @@ function renderWordbook() {
     list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>該当する単語がありません</p></div>`;
     return;
   }
-  list.innerHTML = `<div class="counter-chip">${words.length}語</div>` +
-    words.map(w => {
-      const s = w.isCustom ? 'custom' : getStatus(w);
-      const labels = { new:'未習得', learning:'学習中', mastered:'習得済み', custom:'マイ単語' };
-      return `<div class="word-list-item" onclick="openWordModal(allWords.find(x=>x.word==='${w.word}'))">
-        <div class="word-list-en">${w.word}</div>
-        <div class="word-list-ja">${w.meaning}</div>
-        <button onclick="event.stopPropagation();speak('${w.word}')" style="background:none;border:none;font-size:20px;padding:4px 2px;cursor:pointer;flex-shrink:0;color:var(--primary)">🔊</button>
-        <div class="status-dot ${s}" title="${labels[s]||''}" style="margin-left:6px"></div>
-      </div>`;
-    }).join('');
+  const rows = words.map(w => {
+    const s = w.isCustom ? 'custom' : getStatus(w);
+    return `<div class="wb-row" onclick="openWordModal(allWords.find(x=>x.word==='${w.word}'))">
+      <div style="flex:1;min-width:0">
+        <div class="wb-en">${w.word}</div>
+        <div class="wb-ja">${w.meaning}</div>
+      </div>
+      <button class="wb-audio" onclick="event.stopPropagation();speak('${w.word}')">🔊</button>
+      <div class="status-dot ${s}"></div>
+    </div>`;
+  }).join('');
+  list.innerHTML = `<div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:8px">${words.length}語</div><div class="wb-card">${rows}</div>`;
 }
 
 // ─────────────────────────────────────────
