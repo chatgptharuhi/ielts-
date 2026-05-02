@@ -691,6 +691,11 @@ function renderWordbook() {
   let words = allWords.filter(w => {
     if (wbFilter === 'all') return true;
     if (wbFilter === 'custom') return w.isCustom;
+    if (wbFilter === 'today') return (progress[w.word]||{}).lastSeen === today();
+    if (wbFilter === 'weak') {
+      const p = progress[w.word]||{}; const t = (p.totalCorrect||0)+(p.totalWrong||0);
+      return t >= 2 && (p.totalWrong||0) >= 1;
+    }
     return getStatus(w) === wbFilter;
   }).filter(w => {
     if (!query) return true;
@@ -938,17 +943,17 @@ function renderBrain() {
 
   document.getElementById('brain-content').innerHTML = `
     <div class="stats-grid" style="margin-bottom:12px">
-      <div class="stat-box">
+      <div class="stat-box stat-tap" onclick="goToWordbook('weak')">
         <div class="stat-num" style="color:var(--primary)">${acc}<span style="font-size:14px;font-weight:500">%</span></div>
-        <div class="stat-label">総正答率</div>
+        <div class="stat-label">総正答率 ›</div>
       </div>
-      <div class="stat-box">
+      <div class="stat-box stat-tap" onclick="goToWordbook('learning')">
         <div class="stat-num">${studiedCount}</div>
-        <div class="stat-label">学習済み語</div>
+        <div class="stat-label">学習済み語 ›</div>
       </div>
-      <div class="stat-box">
+      <div class="stat-box stat-tap" onclick="goToWordbook('today')">
         <div class="stat-num" style="color:var(--warning)">${todayCount}</div>
-        <div class="stat-label">今日学習</div>
+        <div class="stat-label">今日学習 ›</div>
       </div>
     </div>
 
