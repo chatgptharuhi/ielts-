@@ -1014,15 +1014,16 @@ function importFromPaste() {
 // ─────────────────────────────────────────
 function speak(text) {
   if (!text || !speechAvailable) { showToast('音声非対応のブラウザです'); return; }
-  // iOS Safari: cancel()直後にspeak()すると無視されるバグ → 100ms待つ
   speechSynthesis.cancel();
-  setTimeout(() => {
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US';
-    u.rate = 0.85;
-    u.pitch = 1;
-    speechSynthesis.speak(u);
-  }, 100);
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US';
+  u.rate = 0.85;
+  u.pitch = 1;
+  // iOSはen-USボイスを明示的に指定すると安定する
+  const voices = speechSynthesis.getVoices();
+  const enVoice = voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en'));
+  if (enVoice) u.voice = enVoice;
+  speechSynthesis.speak(u);
 }
 
 // ─────────────────────────────────────────
