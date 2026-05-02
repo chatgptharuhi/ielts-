@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F2F4F8">
+<title>IELTS単語帳</title>
+<link rel="stylesheet" href="style.css">
+<script src="words.js"></script>
+<script src="words_level1.js"></script>
+<script src="sentences.js"></script>
+</head>
+<body>
+<div id="app">
+
+<!-- ══ HOME ══ -->
+<div id="view-home" class="view active">
+  <div class="page-title">IELTS 単語帳</div>
+
+  <div class="stats-grid" id="stats-grid"></div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+      <span style="font-size:14px;color:var(--text2)">習得進捗</span>
+      <span id="progress-pct" style="font-size:14px;font-weight:700;color:var(--primary)">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="accuracy-row" style="margin-top:12px">
+      <span class="accuracy-label">総正答率</span>
+      <span class="accuracy-value" id="accuracy-val">—</span>
+    </div>
+  </div>
+
+  <div class="section-title">学習モード</div>
+  <div class="menu-item" onclick="startWordTest()">
+    <div class="menu-icon">📝</div>
+    <div class="menu-text">
+      <h3>単語テスト</h3>
+      <p>英語→日本語 6択、SRS管理</p>
+    </div>
+    <div class="menu-arrow">›</div>
+  </div>
+  <div class="menu-item" onclick="startSentenceTest()">
+    <div class="menu-icon">📖</div>
+    <div class="menu-text">
+      <h3>文章問題</h3>
+      <p>IELTS風 空欄補充 50問</p>
+    </div>
+    <div class="menu-arrow">›</div>
+  </div>
+</div>
+
+<!-- ══ WORD TEST ══ -->
+<div id="view-word-test" class="view">
+  <div id="wt-progress" style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+      <span style="font-size:13px;color:var(--text2)" id="wt-label">単語テスト</span>
+      <span style="font-size:13px;font-weight:700;color:var(--primary)" id="wt-score"></span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="wt-prog-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="word-display">
+      <div class="word-english" id="wt-word"></div>
+      <div class="word-pron" id="wt-pron"></div>
+      <div class="word-pos-badge" id="wt-pos"></div>
+      <br>
+      <button class="audio-btn" onclick="speak(currentWord.word)">🔊 読み上げ</button>
+    </div>
+
+    <div class="detail-panel" id="wt-detail">
+      <div class="detail-label">意味</div>
+      <div class="detail-meaning" id="wt-d-meaning"></div>
+      <div class="detail-section">
+        <div class="detail-label">用法</div>
+        <p id="wt-d-usage"></p>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">例文</div>
+        <p id="wt-d-example" class="en"></p>
+        <p id="wt-d-example-ja" style="font-size:14px;color:var(--text2);margin-top:4px"></p>
+        <button class="audio-btn" style="margin-top:10px;margin-bottom:0" onclick="speak(currentWord.example)">🔊 例文を聞く</button>
+      </div>
+    </div>
+
+    <div class="word-actions" id="wt-actions">
+      <button class="btn btn-ghost" onclick="showWordDetail()">わからない 👀</button>
+      <button class="btn btn-primary" onclick="showChoices()">テストする →</button>
+    </div>
+
+    <div class="result-banner" id="wt-result"></div>
+    <div class="choices-grid" id="wt-choices" style="display:none"></div>
+
+    <div id="wt-next-area" style="display:none">
+      <button class="btn btn-primary" onclick="nextWord()">次の単語 →</button>
+      <div style="height:10px"></div>
+      <button class="btn btn-ghost btn-sm" style="display:block;width:100%" onclick="openWordModal(currentWord)">詳細を見る 📚</button>
+    </div>
+  </div>
+
+  <button class="btn btn-ghost" style="margin-top:8px" onclick="showView('home')">← ホームに戻る</button>
+</div>
+
+<!-- ══ SENTENCE TEST ══ -->
+<div id="view-sentence-test" class="view">
+  <div id="st-progress" style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+      <span style="font-size:13px;color:var(--text2)">文章問題</span>
+      <span style="font-size:13px;font-weight:700;color:var(--primary)" id="st-score"></span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="st-prog-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title" style="margin-bottom:10px">空欄に入る単語を選んでください</div>
+    <p class="sentence-text" id="st-sentence"></p>
+    <p class="sentence-ja" id="st-ja"></p>
+
+    <div class="result-banner" id="st-result"></div>
+    <div class="choices-grid" id="st-choices"></div>
+
+    <div id="st-explanation" style="display:none" class="detail-panel show">
+      <div class="detail-label">解説</div>
+      <p id="st-exp-text" style="font-size:15px;line-height:1.7"></p>
+    </div>
+
+    <div id="st-next-area" style="display:none">
+      <button class="btn btn-primary" onclick="nextSentence()">次の問題 →</button>
+    </div>
+  </div>
+
+  <button class="btn btn-ghost" style="margin-top:8px" onclick="showView('home')">← ホームに戻る</button>
+</div>
+
+<!-- ══ WORDBOOK ══ -->
+<div id="view-wordbook" class="view">
+  <div class="page-title">単語帳</div>
+  <input type="search" class="search-bar" placeholder="🔍 単語を検索..." id="wb-search" oninput="renderWordbook()">
+  <div class="filter-tabs" id="wb-filters">
+    <button class="filter-tab active" data-filter="all" onclick="setFilter('all',this)">すべて</button>
+    <button class="filter-tab" data-filter="new" onclick="setFilter('new',this)">未習得</button>
+    <button class="filter-tab" data-filter="learning" onclick="setFilter('learning',this)">学習中</button>
+    <button class="filter-tab" data-filter="mastered" onclick="setFilter('mastered',this)">習得済み</button>
+    <button class="filter-tab" data-filter="custom" onclick="setFilter('custom',this)">マイ単語</button>
+  </div>
+  <div id="wb-list"></div>
+</div>
+
+<!-- ══ ADD WORD ══ -->
+<div id="view-add" class="view">
+  <div class="page-title">単語を追加</div>
+  <div class="card">
+    <div class="form-group">
+      <label class="form-label">英単語 *</label>
+      <input class="form-input" id="add-word" placeholder="例: persevere" autocapitalize="none" autocorrect="off">
+    </div>
+    <div class="form-group">
+      <label class="form-label">発音記号</label>
+      <input class="form-input" id="add-pron" placeholder="例: pɜːsɪˈvɪər" autocapitalize="none">
+    </div>
+    <div class="form-group">
+      <label class="form-label">品詞</label>
+      <input class="form-input" id="add-pos" placeholder="例: 動詞">
+    </div>
+    <div class="form-group">
+      <label class="form-label">意味 *</label>
+      <input class="form-input" id="add-meaning" placeholder="例: 忍耐強く続ける">
+    </div>
+    <div class="form-group">
+      <label class="form-label">用法・ポイント</label>
+      <textarea class="form-input" id="add-usage" placeholder="例: persevere in/with ～ で「～を粘り強く続ける」"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">例文（英語）</label>
+      <textarea class="form-input" id="add-example" placeholder="例: She persevered in her studies despite many difficulties."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">例文（日本語）</label>
+      <input class="form-input" id="add-example-ja" placeholder="例: 多くの困難にもかかわらず彼女は勉強を続けた。">
+    </div>
+    <div class="form-group">
+      <label class="form-label">カテゴリ</label>
+      <input class="form-input" id="add-category" placeholder="例: 学術 / 環境 / 経済">
+    </div>
+    <button class="btn btn-primary" onclick="addCustomWord()" style="margin-top:4px">追加する ＋</button>
+  </div>
+</div>
+
+<!-- ══ MODAL ══ -->
+<div class="modal-overlay" id="word-modal" onclick="closeModal(event)">
+  <div class="modal-box">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px">
+      <div>
+        <div class="modal-word" id="m-word"></div>
+        <div class="modal-pron" id="m-pron"></div>
+      </div>
+      <button class="audio-btn" style="margin:0;flex-shrink:0" id="m-audio-btn">🔊</button>
+    </div>
+    <div class="modal-meaning" id="m-meaning"></div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <span class="word-pos-badge" id="m-pos"></span>
+      <span class="word-pos-badge" id="m-cat" style="background:var(--bg);color:var(--text2)"></span>
+      <span class="word-pos-badge" id="m-status-badge"></span>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-label">用法・ポイント</div>
+      <p id="m-usage" style="font-size:15px;line-height:1.7;color:var(--text)"></p>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-label">例文</div>
+      <p id="m-example" style="font-size:15px;font-style:italic;color:var(--text2);line-height:1.7"></p>
+      <p id="m-example-ja" style="font-size:14px;color:var(--text2);margin-top:6px"></p>
+      <button class="audio-btn" style="margin-top:12px;margin-bottom:0" id="m-example-audio">🔊 例文を聞く</button>
+    </div>
+    <div class="modal-section" id="m-stats-section">
+      <div class="modal-section-label">学習状況</div>
+      <div id="m-stats" style="font-size:14px;color:var(--text2);line-height:1.9"></div>
+    </div>
+    <button class="modal-close" onclick="document.getElementById('word-modal').classList.remove('show')">閉じる</button>
+  </div>
+</div>
+
+<!-- ══ BULK IMPORT ══ -->
+<div id="view-import" class="view">
+  <div class="page-title">一括インポート</div>
+  <div class="card">
+    <p style="font-size:15px;color:var(--text2);margin-bottom:14px;line-height:1.7">
+      IELTS 3500など、本でわからなかった単語をまとめて追加できます。<br>
+      1行に1単語、<strong>単語,意味</strong>の形で入力してください。
+    </p>
+    <div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--text2);line-height:1.8">
+      <strong>入力例：</strong><br>
+      persevere,忍耐強く続ける<br>
+      eloquent,雄弁な、表現力豊かな<br>
+      meticulous,几帳面な、細心の注意を払う
+    </div>
+    <textarea class="form-input" id="bulk-input" style="min-height:220px;font-family:monospace;font-size:14px" placeholder="単語,意味&#10;単語,意味&#10;..."></textarea>
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <button class="btn btn-primary" onclick="bulkImport()" style="flex:1">インポート実行</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('bulk-input').value=''" style="flex-shrink:0">クリア</button>
+    </div>
+    <div id="import-result" style="display:none;margin-top:12px;padding:12px;border-radius:12px;font-size:15px;font-weight:600"></div>
+  </div>
+  <div class="card" style="margin-top:4px">
+    <div class="section-title">現在の単語数</div>
+    <div id="import-stats" style="font-size:28px;font-weight:700;color:var(--primary);margin-top:4px"></div>
+    <div style="font-size:13px;color:var(--text2);margin-top:4px">プリセット + マイ単語の合計</div>
+  </div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div class="toast" id="toast"></div>
+
+<!-- ══ BOTTOM NAV ══ -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-view="home" onclick="showView('home')">
+    <span class="icon">🏠</span><span>ホーム</span>
+  </button>
+  <button class="nav-btn" data-view="view-word-test" onclick="startWordTest()">
+    <span class="icon">📝</span><span>単語</span>
+  </button>
+  <button class="nav-btn" data-view="view-sentence-test" onclick="startSentenceTest()">
+    <span class="icon">📖</span><span>文章</span>
+  </button>
+  <button class="nav-btn" data-view="view-wordbook" onclick="showView('wordbook')">
+    <span class="icon">📚</span><span>単語帳</span>
+  </button>
+  <button class="nav-btn" data-view="view-add" onclick="showView('add')">
+    <span class="icon">＋</span><span>追加</span>
+  </button>
+  <button class="nav-btn" data-view="view-import" onclick="showView('import')">
+    <span class="icon">📥</span><span>一括</span>
+  </button>
+</nav>
+
+</div><!-- #app -->
+
+<script>
+// ─────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────
+const STORE = 'ielts_v2';
+let progress = {};   // { word: { status, streak, totalCorrect, totalWrong, lastSeen } }
+let customWords = [];
+let currentWord = null;
+let wordSessionCount = 0;
+let wordSessionCorrect = 0;
+let sentenceSessionIdx = 0;
+let sentenceSessionCorrect = 0;
+let sentenceQueue = [];
+let wbFilter = 'all';
+let speechAvailable = typeof speechSynthesis !== 'undefined';
+let allWords = [];   // WORDS + customWords merged
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORE);
+    if (raw) { const d = JSON.parse(raw); progress = d.progress||{}; customWords = d.customWords||[]; }
+  } catch(e) {}
+  rebuildAllWords();
+}
+
+function saveData() {
+  localStorage.setItem(STORE, JSON.stringify({ progress, customWords }));
+}
+
+function rebuildAllWords() {
+  const base = [...window.WORDS, ...(window.WORDS_LEVEL1 || [])];
+  allWords = [...base, ...customWords.map(w => ({ ...w, isCustom: true }))];
+}
+
+function getStatus(word) {
+  return (progress[word.word] || {}).status || 'new';
+}
+
+function updateProgress(word, correct) {
+  if (!progress[word.word]) progress[word.word] = { status:'new', streak:0, totalCorrect:0, totalWrong:0 };
+  const p = progress[word.word];
+  p.lastSeen = today();
+  if (correct) {
+    p.totalCorrect++;
+    p.streak = (p.streak||0) + 1;
+    if (p.streak >= 3) p.status = 'mastered';
+    else p.status = 'learning';
+  } else {
+    p.totalWrong++;
+    p.streak = 0;
+    p.status = 'learning';
+  }
+  saveData();
+}
+
+function today() { return new Date().toISOString().slice(0,10); }
+
+// ─────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const view = document.getElementById('view-' + name);
+  if (view) view.classList.add('active');
+  const btn = document.querySelector(`.nav-btn[data-view="view-${name}"]`);
+  if (btn) btn.classList.add('active');
+
+  if (name === 'home') renderHome();
+  if (name === 'wordbook') renderWordbook();
+  if (name === 'add') clearAddForm();
+  if (name === 'import') renderImportStats();
+  window.scrollTo(0,0);
+}
+
+// ─────────────────────────────────────────
+// HOME
+// ─────────────────────────────────────────
+function renderHome() {
+  const total = allWords.length;
+  let newCount=0, learningCount=0, masteredCount=0;
+  let totalC=0, totalW=0;
+  allWords.forEach(w => {
+    const s = getStatus(w);
+    if (s==='new') newCount++;
+    else if (s==='learning') learningCount++;
+    else masteredCount++;
+    const p = progress[w.word]||{};
+    totalC += p.totalCorrect||0;
+    totalW += p.totalWrong||0;
+  });
+  const pct = total ? Math.round(masteredCount/total*100) : 0;
+  const acc = (totalC+totalW) ? Math.round(totalC/(totalC+totalW)*100) : null;
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-box"><div class="stat-num new">${newCount}</div><div class="stat-label">未習得</div></div>
+    <div class="stat-box"><div class="stat-num learning">${learningCount}</div><div class="stat-label">学習中</div></div>
+    <div class="stat-box"><div class="stat-num mastered">${masteredCount}</div><div class="stat-label">習得済み</div></div>`;
+  document.getElementById('progress-fill').style.width = pct+'%';
+  document.getElementById('progress-pct').textContent = pct+'%';
+  document.getElementById('accuracy-val').textContent = acc !== null ? acc+'%' : '—';
+}
+
+// ─────────────────────────────────────────
+// WORD TEST
+// ─────────────────────────────────────────
+function startWordTest() {
+  wordSessionCount = 0;
+  wordSessionCorrect = 0;
+  showView('word-test');
+  nextWord();
+}
+
+function pickNextWord() {
+  const newWords = allWords.filter(w => getStatus(w)==='new');
+  const learningWords = allWords.filter(w => getStatus(w)==='learning');
+  const masteredWords = allWords.filter(w => getStatus(w)==='mastered');
+  let pool = [];
+  if (newWords.length) pool = [...newWords, ...newWords, ...learningWords];  // new 優先
+  else if (learningWords.length) pool = learningWords;
+  else pool = masteredWords;
+  if (!pool.length) pool = allWords;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function nextWord() {
+  currentWord = pickNextWord();
+  wordSessionCount++;
+  renderWordCard();
+}
+
+function renderWordCard() {
+  document.getElementById('wt-word').textContent = currentWord.word;
+  document.getElementById('wt-pron').textContent = currentWord.pron ? '/' + currentWord.pron + '/' : '';
+  document.getElementById('wt-pos').textContent = currentWord.pos || '';
+  document.getElementById('wt-detail').classList.remove('show');
+  document.getElementById('wt-actions').style.display = 'flex';
+  document.getElementById('wt-choices').innerHTML = '';
+  document.getElementById('wt-choices').style.display = 'none';
+  document.getElementById('wt-result').classList.remove('show','correct','wrong');
+  document.getElementById('wt-next-area').style.display = 'none';
+  updateWtProgress();
+}
+
+function updateWtProgress() {
+  const pct = wordSessionCount > 1 ? Math.round((wordSessionCount-1)/wordSessionCount*100) : 0;
+  document.getElementById('wt-prog-fill').style.width = pct+'%';
+  document.getElementById('wt-score').textContent = `正解 ${wordSessionCorrect}/${wordSessionCount-1}`;
+  document.getElementById('wt-label').textContent = `${getStatus(currentWord)==='new'?'⚪ 新規':getStatus(currentWord)==='learning'?'🟡 学習中':'🟢 習得済み'}`;
+}
+
+function showWordDetail() {
+  document.getElementById('wt-d-meaning').textContent = currentWord.meaning;
+  document.getElementById('wt-d-usage').textContent = currentWord.usage || '—';
+  document.getElementById('wt-d-example').textContent = currentWord.example || '';
+  document.getElementById('wt-d-example-ja').textContent = currentWord.exampleJa || '';
+  document.getElementById('wt-detail').classList.add('show');
+  document.getElementById('wt-actions').style.display = 'flex';
+}
+
+function showChoices() {
+  document.getElementById('wt-detail').classList.remove('show');
+  document.getElementById('wt-actions').style.display = 'none';
+  const choices = generateChoices(currentWord, allWords);
+  const grid = document.getElementById('wt-choices');
+  grid.style.display = 'flex';
+  grid.innerHTML = choices.map(c =>
+    `<button class="choice-btn" onclick="selectWordChoice(this, ${JSON.stringify(c.meaning).replace(/"/g,'&quot;')}, ${c.isCorrect})">${c.meaning}</button>`
+  ).join('');
+}
+
+function generateChoices(word, words) {
+  const correct = { meaning: word.meaning, isCorrect: true };
+  const wrong = shuffle(words.filter(w => w.word !== word.word)).slice(0,5).map(w => ({ meaning: w.meaning, isCorrect: false }));
+  return shuffle([correct, ...wrong]);
+}
+
+function selectWordChoice(btn, meaning, isCorrect) {
+  document.querySelectorAll('#wt-choices .choice-btn').forEach(b => {
+    b.disabled = true;
+    if (b.textContent === currentWord.meaning) b.classList.add('reveal');
+  });
+  if (isCorrect) {
+    btn.classList.add('correct');
+    showResult('wt-result', true, '正解！ ✓');
+    wordSessionCorrect++;
+  } else {
+    btn.classList.add('wrong');
+    showResult('wt-result', false, `不正解。正解は「${currentWord.meaning}」`);
+  }
+  updateProgress(currentWord, isCorrect);
+  showWordDetailInResult();
+  document.getElementById('wt-next-area').style.display = 'block';
+  updateWtProgress();
+}
+
+function showWordDetailInResult() {
+  document.getElementById('wt-d-meaning').textContent = currentWord.meaning;
+  document.getElementById('wt-d-usage').textContent = currentWord.usage || '—';
+  document.getElementById('wt-d-example').textContent = currentWord.example || '';
+  document.getElementById('wt-d-example-ja').textContent = currentWord.exampleJa || '';
+  document.getElementById('wt-detail').classList.add('show');
+}
+
+// ─────────────────────────────────────────
+// SENTENCE TEST
+// ─────────────────────────────────────────
+function startSentenceTest() {
+  sentenceQueue = shuffle([...window.SENTENCES]);
+  sentenceSessionIdx = 0;
+  sentenceSessionCorrect = 0;
+  showView('sentence-test');
+  showSentenceQuestion();
+}
+
+function showSentenceQuestion() {
+  if (sentenceSessionIdx >= sentenceQueue.length) {
+    // Reset queue
+    sentenceQueue = shuffle([...window.SENTENCES]);
+    sentenceSessionIdx = 0;
+  }
+  const q = sentenceQueue[sentenceSessionIdx];
+  const pct = Math.round(sentenceSessionIdx / sentenceQueue.length * 100);
+  document.getElementById('st-prog-fill').style.width = pct+'%';
+  document.getElementById('st-score').textContent = `正解 ${sentenceSessionCorrect}/${sentenceSessionIdx}`;
+
+  const html = q.sentence.replace('_____', '<span class="blank">_____</span>');
+  document.getElementById('st-sentence').innerHTML = html;
+  document.getElementById('st-ja').textContent = q.translation;
+  document.getElementById('st-ja').classList.remove('show');
+  document.getElementById('st-result').classList.remove('show','correct','wrong');
+  document.getElementById('st-explanation').style.display = 'none';
+  document.getElementById('st-next-area').style.display = 'none';
+
+  const choices = shuffle([...q.choices]);
+  document.getElementById('st-choices').innerHTML = choices.map(c =>
+    `<button class="choice-btn" onclick="selectSentenceChoice(this,'${c}','${q.answer}')">${c}</button>`
+  ).join('');
+}
+
+function selectSentenceChoice(btn, selected, answer) {
+  const q = sentenceQueue[sentenceSessionIdx];
+  document.querySelectorAll('#st-choices .choice-btn').forEach(b => {
+    b.disabled = true;
+    if (b.textContent === answer) b.classList.add('reveal');
+  });
+  const isCorrect = selected === answer;
+  if (isCorrect) {
+    btn.classList.add('correct');
+    showResult('st-result', true, '正解！ ✓');
+    sentenceSessionCorrect++;
+  } else {
+    btn.classList.add('wrong');
+    showResult('st-result', false, `不正解。正解は「${answer}」`);
+  }
+  document.getElementById('st-ja').classList.add('show');
+  document.getElementById('st-exp-text').textContent = q.explanation || '';
+  document.getElementById('st-explanation').style.display = 'block';
+  document.getElementById('st-next-area').style.display = 'block';
+  sentenceSessionIdx++;
+  document.getElementById('st-score').textContent = `正解 ${sentenceSessionCorrect}/${sentenceSessionIdx}`;
+}
+
+function nextSentence() {
+  showSentenceQuestion();
+}
+
+// ─────────────────────────────────────────
+// WORDBOOK
+// ─────────────────────────────────────────
+function setFilter(filter, el) {
+  wbFilter = filter;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderWordbook();
+}
+
+function renderWordbook() {
+  const query = (document.getElementById('wb-search')||{}).value || '';
+  let words = allWords.filter(w => {
+    if (wbFilter === 'all') return true;
+    if (wbFilter === 'custom') return w.isCustom;
+    return getStatus(w) === wbFilter;
+  }).filter(w => {
+    if (!query) return true;
+    return w.word.toLowerCase().includes(query.toLowerCase()) || w.meaning.includes(query);
+  });
+
+  const list = document.getElementById('wb-list');
+  if (!words.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>該当する単語がありません</p></div>`;
+    return;
+  }
+  list.innerHTML = `<div class="counter-chip">${words.length}語</div>` +
+    words.map(w => {
+      const s = w.isCustom ? 'custom' : getStatus(w);
+      const labels = { new:'未習得', learning:'学習中', mastered:'習得済み', custom:'マイ単語' };
+      return `<div class="word-list-item" onclick="openWordModal(allWords.find(x=>x.word==='${w.word}'))">
+        <div class="word-list-en">${w.word}</div>
+        <div class="word-list-ja">${w.meaning}</div>
+        <div class="status-dot ${s}" title="${labels[s]||''}"></div>
+      </div>`;
+    }).join('');
+}
+
+// ─────────────────────────────────────────
+// WORD MODAL
+// ─────────────────────────────────────────
+function openWordModal(word) {
+  if (!word) return;
+  const p = progress[word.word] || {};
+  const s = word.isCustom ? 'custom' : getStatus(word);
+  const statusText = { new:'未習得', learning:'学習中', mastered:'習得済み', custom:'マイ単語（新規）' };
+  const statusColor = { new:'var(--text3)', learning:'var(--warning)', mastered:'var(--success)', custom:'var(--primary)' };
+
+  document.getElementById('m-word').textContent = word.word;
+  document.getElementById('m-pron').textContent = word.pron ? '/'+word.pron+'/' : '';
+  document.getElementById('m-meaning').textContent = word.meaning;
+  document.getElementById('m-pos').textContent = word.pos || '—';
+  document.getElementById('m-cat').textContent = word.category || '';
+  document.getElementById('m-status-badge').textContent = statusText[s]||'';
+  document.getElementById('m-status-badge').style.background = statusColor[s]+'22';
+  document.getElementById('m-status-badge').style.color = statusColor[s];
+  document.getElementById('m-usage').textContent = word.usage || '—';
+  document.getElementById('m-example').textContent = word.example || '—';
+  document.getElementById('m-example-ja').textContent = word.exampleJa || '';
+  document.getElementById('m-audio-btn').onclick = () => speak(word.word);
+  document.getElementById('m-example-audio').onclick = () => speak(word.example || word.word);
+  document.getElementById('m-stats').innerHTML =
+    `正解: ${p.totalCorrect||0}回　不正解: ${p.totalWrong||0}回　連続正解: ${p.streak||0}回`;
+  document.getElementById('word-modal').classList.add('show');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('word-modal'))
+    document.getElementById('word-modal').classList.remove('show');
+}
+
+// ─────────────────────────────────────────
+// ADD CUSTOM WORD
+// ─────────────────────────────────────────
+function clearAddForm() {
+  ['add-word','add-pron','add-pos','add-meaning','add-usage','add-example','add-example-ja','add-category']
+    .forEach(id => { document.getElementById(id).value = ''; });
+}
+
+function addCustomWord() {
+  const word = document.getElementById('add-word').value.trim().toLowerCase();
+  const meaning = document.getElementById('add-meaning').value.trim();
+  if (!word || !meaning) { showToast('単語と意味は必須です'); return; }
+  if (allWords.find(w => w.word === word)) { showToast('この単語はすでに存在します'); return; }
+  const newWord = {
+    id: Date.now(),
+    word,
+    pron: document.getElementById('add-pron').value.trim(),
+    pos: document.getElementById('add-pos').value.trim(),
+    meaning,
+    usage: document.getElementById('add-usage').value.trim(),
+    example: document.getElementById('add-example').value.trim(),
+    exampleJa: document.getElementById('add-example-ja').value.trim(),
+    category: document.getElementById('add-category').value.trim() || 'マイ単語',
+    isCustom: true
+  };
+  customWords.push(newWord);
+  rebuildAllWords();
+  saveData();
+  clearAddForm();
+  showToast(`「${word}」を追加しました ✓`);
+}
+
+// ─────────────────────────────────────────
+// BULK IMPORT
+// ─────────────────────────────────────────
+function bulkImport() {
+  const raw = document.getElementById('bulk-input').value.trim();
+  if (!raw) { showToast('テキストを入力してください'); return; }
+  const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+  let added = 0, skipped = 0, errors = 0;
+  lines.forEach(line => {
+    const parts = line.split(',');
+    if (parts.length < 2) { errors++; return; }
+    const word = parts[0].trim().toLowerCase();
+    const meaning = parts.slice(1).join(',').trim();
+    if (!word || !meaning) { errors++; return; }
+    if (allWords.find(w => w.word === word)) { skipped++; return; }
+    customWords.push({ id: Date.now() + Math.random(), word, meaning, pos:'', pron:'', usage:'', example:'', exampleJa:'', category:'マイ単語', isCustom: true });
+    added++;
+  });
+  rebuildAllWords();
+  saveData();
+  document.getElementById('bulk-input').value = '';
+  const res = document.getElementById('import-result');
+  res.style.display = 'block';
+  res.style.background = added > 0 ? 'var(--success-light)' : 'var(--warning-light)';
+  res.style.color = added > 0 ? 'var(--success)' : 'var(--warning)';
+  res.textContent = `追加: ${added}語　スキップ(重複): ${skipped}語　エラー: ${errors}語`;
+  renderImportStats();
+  setTimeout(() => { res.style.display = 'none'; }, 4000);
+}
+
+function renderImportStats() {
+  const el = document.getElementById('import-stats');
+  if (el) el.textContent = allWords.length + '語';
+}
+
+// ─────────────────────────────────────────
+// AUDIO
+// ─────────────────────────────────────────
+function speak(text) {
+  if (!text || !speechAvailable) { showToast('音声非対応のブラウザです'); return; }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US';
+  u.rate = 0.85;
+  u.pitch = 1;
+  speechSynthesis.speak(u);
+}
+
+// ─────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────
+function shuffle(arr) {
+  for (let i = arr.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function showResult(id, isCorrect, text) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'result-banner show ' + (isCorrect ? 'correct' : 'wrong');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────
+loadData();
+renderHome();
+</script>
+</body>
+</html>
