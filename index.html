@@ -528,7 +528,7 @@ function openLevelSelector(mode) {
   const levels = [...new Set(allWords.map(w => w.level || 1))].sort((a,b) => a-b);
   const options = [{ value: 'all', label: '全レベル' }, ...levels.map(l => ({ value: l, label: `Level ${l}` }))];
   document.getElementById('level-chips').innerHTML = options.map(o =>
-    `<button class="filter-chip ${selectedLevel === o.value ? 'active' : ''}" onclick="selectLevel(${JSON.stringify(o.value)}, this)">${o.label}</button>`
+    `<button class="filter-chip ${selectedLevel === o.value ? 'active' : ''}" data-val="${o.value}" onclick="selectLevel(this.dataset.val==='all'?'all':Number(this.dataset.val),this)">${o.label}</button>`
   ).join('');
   document.getElementById('level-modal').classList.add('show');
 }
