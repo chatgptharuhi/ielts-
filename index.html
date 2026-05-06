@@ -530,7 +530,7 @@ function openLevelSelector(mode) {
   document.getElementById('level-chips').innerHTML = options.map(o =>
     `<button class="filter-chip ${selectedLevel === o.value ? 'active' : ''}" onclick="selectLevel(${JSON.stringify(o.value)}, this)">${o.label}</button>`
   ).join('');
-  document.getElementById('level-modal').classList.add('open');
+  document.getElementById('level-modal').classList.add('show');
 }
 
 function selectLevel(level, btn) {
@@ -541,12 +541,12 @@ function selectLevel(level, btn) {
 
 function closeLevelModal(e) {
   if (!e || e.target === document.getElementById('level-modal')) {
-    document.getElementById('level-modal').classList.remove('open');
+    document.getElementById('level-modal').classList.remove('show');
   }
 }
 
 function confirmLevelStart() {
-  document.getElementById('level-modal').classList.remove('open');
+  document.getElementById('level-modal').classList.remove('show');
   startWordTest(pendingTestMode);
 }
 
