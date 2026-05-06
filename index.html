@@ -178,10 +178,8 @@
   <div class="card">
     <div class="form-group">
       <label class="form-label">英単語 *</label>
-      <div style="display:flex;gap:8px">
-        <input class="form-input" id="add-word" placeholder="例: persevere" autocapitalize="none" autocorrect="off" style="flex:1">
-        <button id="ai-fill-btn" class="btn btn-primary" style="flex-shrink:0;white-space:nowrap" onclick="aiAutoFill()">AI補完</button>
-      </div>
+      <input class="form-input" id="add-word" placeholder="例: persevere" autocapitalize="none" autocorrect="off">
+      <button id="ai-fill-btn" class="btn btn-primary" style="width:100%;margin-top:8px" onclick="aiAutoFill()">AI補完 — 発音・意味・例文を自動生成</button>
     </div>
     <div class="form-group">
       <label class="form-label">発音記号</label>
@@ -217,10 +215,8 @@
   <div class="card" style="margin-top:4px">
     <div class="section-label" style="margin-bottom:8px">Claude APIキー</div>
     <p style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.6">AI補完機能に使用。このデバイスにのみ保存されます。</p>
-    <div style="display:flex;gap:8px">
-      <input class="form-input" id="api-key-input" type="password" placeholder="sk-ant-..." style="flex:1;font-family:monospace;font-size:13px">
-      <button class="btn btn-primary" style="flex-shrink:0" onclick="saveApiKey()">保存</button>
-    </div>
+    <input class="form-input" id="api-key-input" type="password" placeholder="sk-ant-..." style="font-family:monospace;font-size:13px">
+    <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="saveApiKey()">保存</button>
   </div>
 
   <div class="menu-card" onclick="showView('import')" style="margin-top:4px">
