@@ -374,6 +374,38 @@ textarea.form-input { min-height: 120px; resize: vertical; line-height: 1.5; }
 .audio-btn:active { opacity: 0.7; }
 .word-pos-badge { display: inline-block; background: var(--border); color: var(--text2); font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; }
 
+/* ── AI補完ボタン ── */
+.btn-ai {
+  width: 100%; margin-top: 8px;
+  padding: 14px;
+  background: linear-gradient(135deg, #4F7EFF 0%, #9B59B6 100%);
+  color: #fff; border: none; border-radius: 14px;
+  font-size: 16px; font-weight: 700; font-family: inherit;
+  cursor: pointer; letter-spacing: 0.3px;
+  transition: opacity 0.15s;
+}
+.btn-ai:active { opacity: 0.82; }
+.btn-ai:disabled { opacity: 0.5; }
+
+/* ── 詳細フィールドのスライドイン ── */
+#add-details {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.35s ease, opacity 0.3s ease;
+}
+#add-details.open {
+  max-height: 1200px;
+  opacity: 1;
+}
+
+/* ── AI設定カード ── */
+.ai-settings-label {
+  font-size: 12px; font-weight: 700; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+  display: block;
+}
+
 /* ── 単語タップ発音 ── */
 .word-tap {
   display: inline;

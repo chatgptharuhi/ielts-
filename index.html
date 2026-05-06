@@ -179,42 +179,46 @@
     <div class="form-group">
       <label class="form-label">英単語 *</label>
       <input class="form-input" id="add-word" placeholder="例: persevere" autocapitalize="none" autocorrect="off">
-      <button id="ai-fill-btn" class="btn btn-primary" style="width:100%;margin-top:8px" onclick="aiAutoFill()">AI補完 — 発音・意味・例文を自動生成</button>
+      <button id="ai-fill-btn" class="btn-ai" onclick="aiAutoFill()">✦ 自動入力</button>
+      <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px" onclick="showAddDetails()">手動で入力する</button>
     </div>
-    <div class="form-group">
-      <label class="form-label">発音記号</label>
-      <input class="form-input" id="add-pron" placeholder="例: pɜːsɪˈvɪər" autocapitalize="none">
+
+    <div id="add-details">
+      <div class="form-group">
+        <label class="form-label">発音記号</label>
+        <input class="form-input" id="add-pron" placeholder="例: pɜːsɪˈvɪər" autocapitalize="none">
+      </div>
+      <div class="form-group">
+        <label class="form-label">品詞</label>
+        <input class="form-input" id="add-pos" placeholder="例: 動詞">
+      </div>
+      <div class="form-group">
+        <label class="form-label">意味 *</label>
+        <input class="form-input" id="add-meaning" placeholder="例: 忍耐強く続ける">
+      </div>
+      <div class="form-group">
+        <label class="form-label">用法・ポイント</label>
+        <textarea class="form-input" id="add-usage" placeholder="例: persevere in/with ～ で「～を粘り強く続ける」"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">例文（英語）</label>
+        <textarea class="form-input" id="add-example" placeholder="例: She persevered in her studies despite many difficulties."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">例文（日本語）</label>
+        <input class="form-input" id="add-example-ja" placeholder="例: 多くの困難にもかかわらず彼女は勉強を続けた。">
+      </div>
+      <div class="form-group">
+        <label class="form-label">カテゴリ</label>
+        <input class="form-input" id="add-category" placeholder="例: 学術 / 環境 / 経済">
+      </div>
+      <button class="btn btn-primary" onclick="addCustomWord()" style="margin-top:4px;width:100%">追加する ＋</button>
     </div>
-    <div class="form-group">
-      <label class="form-label">品詞</label>
-      <input class="form-input" id="add-pos" placeholder="例: 動詞">
-    </div>
-    <div class="form-group">
-      <label class="form-label">意味 *</label>
-      <input class="form-input" id="add-meaning" placeholder="例: 忍耐強く続ける">
-    </div>
-    <div class="form-group">
-      <label class="form-label">用法・ポイント</label>
-      <textarea class="form-input" id="add-usage" placeholder="例: persevere in/with ～ で「～を粘り強く続ける」"></textarea>
-    </div>
-    <div class="form-group">
-      <label class="form-label">例文（英語）</label>
-      <textarea class="form-input" id="add-example" placeholder="例: She persevered in her studies despite many difficulties."></textarea>
-    </div>
-    <div class="form-group">
-      <label class="form-label">例文（日本語）</label>
-      <input class="form-input" id="add-example-ja" placeholder="例: 多くの困難にもかかわらず彼女は勉強を続けた。">
-    </div>
-    <div class="form-group">
-      <label class="form-label">カテゴリ</label>
-      <input class="form-input" id="add-category" placeholder="例: 学術 / 環境 / 経済">
-    </div>
-    <button class="btn btn-primary" onclick="addCustomWord()" style="margin-top:4px">追加する ＋</button>
   </div>
 
   <div class="card" style="margin-top:4px">
-    <div class="section-label" style="margin-bottom:8px">Claude APIキー</div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.6">AI補完機能に使用。このデバイスにのみ保存されます。</p>
+    <span class="ai-settings-label">AI設定</span>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.6">自動入力機能のAPIキー。このデバイスにのみ保存されます。</p>
     <input class="form-input" id="api-key-input" type="password" placeholder="sk-ant-..." style="font-family:monospace;font-size:13px">
     <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="saveApiKey()">保存</button>
   </div>
@@ -883,9 +887,14 @@ function quickAdd() {
   renderHome();
 }
 
+function showAddDetails() {
+  document.getElementById('add-details').classList.add('open');
+}
+
 function clearAddForm() {
   ['add-word','add-pron','add-pos','add-meaning','add-usage','add-example','add-example-ja','add-category']
     .forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('add-details').classList.remove('open');
 }
 
 function addCustomWord() {
@@ -1180,7 +1189,8 @@ async function aiAutoFill() {
     document.getElementById('add-example').value   = json.example   || '';
     document.getElementById('add-example-ja').value= json.exampleJa || '';
     document.getElementById('add-category').value  = json.category  || '';
-    showToast('AI補完完了');
+    showAddDetails();
+    showToast('自動入力完了');
   } catch(e) {
     showToast('失敗: ' + e.message);
   }
