@@ -48,7 +48,7 @@
     </div>
   </div>
 
-  <div class="menu-card" onclick="startWordTest('all')">
+  <div class="menu-card" onclick="openLevelSelector('all')">
     <div class="menu-icon-wrap blue">📝</div>
     <div class="menu-text">
       <h3>単語テスト</h3>
@@ -233,6 +233,16 @@
   </div>
 </div>
 
+<!-- ══ LEVEL SELECTOR MODAL ══ -->
+<div class="modal-overlay" id="level-modal" onclick="closeLevelModal(event)">
+  <div class="modal-box">
+    <div style="font-size:18px;font-weight:700;margin-bottom:16px">テスト範囲を選ぶ</div>
+    <div class="level-chip-grid" id="level-chips"></div>
+    <button class="btn btn-primary" onclick="confirmLevelStart()" style="width:100%">テスト開始 →</button>
+    <button class="btn btn-ghost" onclick="closeLevelModal()" style="width:100%;margin-top:8px">キャンセル</button>
+  </div>
+</div>
+
 <!-- ══ MODAL ══ -->
 <div class="modal-overlay" id="word-modal" onclick="closeModal(event)">
   <div class="modal-box">
@@ -282,6 +292,16 @@
       meticulous,几帳面な、細心の注意を払う
     </div>
     <textarea class="form-input" id="bulk-input" style="min-height:220px;font-family:monospace;font-size:14px" placeholder="単語,意味&#10;単語,意味&#10;..."></textarea>
+    <div style="margin-top:14px;margin-bottom:4px">
+      <div class="form-label" style="margin-bottom:8px">レベル（IELTS 3500）</div>
+      <div class="filter-row" id="import-level-chips">
+        <button class="filter-chip active" onclick="selectImportLevel(1,this)">Level 1</button>
+        <button class="filter-chip" onclick="selectImportLevel(2,this)">Level 2</button>
+        <button class="filter-chip" onclick="selectImportLevel(3,this)">Level 3</button>
+        <button class="filter-chip" onclick="selectImportLevel(4,this)">Level 4</button>
+        <button class="filter-chip" onclick="selectImportLevel(5,this)">Level 5</button>
+      </div>
+    </div>
     <div style="display:flex;gap:10px;margin-top:12px">
       <button class="btn btn-primary" onclick="bulkImport()" style="flex:1">インポート実行</button>
       <button class="btn btn-ghost btn-sm" onclick="document.getElementById('bulk-input').value=''" style="flex-shrink:0">クリア</button>
@@ -312,7 +332,7 @@
   <button class="nav-btn active" data-view="home" onclick="showView('home')">
     <span class="icon">🏠</span><span>ホーム</span>
   </button>
-  <button class="nav-btn" data-view="view-word-test" onclick="startWordTest()">
+  <button class="nav-btn" data-view="view-word-test" onclick="openLevelSelector('all')">
     <span class="icon">📝</span><span>単語</span>
   </button>
   <button class="nav-btn" data-view="view-sentence-test" onclick="startSentenceTest()">
@@ -349,6 +369,9 @@ let wbFilter = 'all';
 let speechAvailable = typeof speechSynthesis !== 'undefined';
 let allWords = [];   // WORDS + customWords merged
 let testMode = 'all';  // 'all' | 'custom'
+let selectedLevel = 'all'; // 'all' | 1 | 2 | 3 | 4 | 5
+let pendingTestMode = 'all';
+let importLevel = 1;
 
 function loadData() {
   try {
@@ -479,6 +502,43 @@ function renderHome() {
 }
 
 // ─────────────────────────────────────────
+// LEVEL SELECTOR
+// ─────────────────────────────────────────
+function openLevelSelector(mode) {
+  if (mode === 'custom') { startWordTest('custom'); return; }
+  pendingTestMode = mode || 'all';
+  const levels = [...new Set(allWords.map(w => w.level || 1))].sort((a,b) => a-b);
+  const options = [{ value: 'all', label: '全レベル' }, ...levels.map(l => ({ value: l, label: `Level ${l}` }))];
+  document.getElementById('level-chips').innerHTML = options.map(o =>
+    `<button class="filter-chip ${selectedLevel === o.value ? 'active' : ''}" onclick="selectLevel(${JSON.stringify(o.value)}, this)">${o.label}</button>`
+  ).join('');
+  document.getElementById('level-modal').classList.add('open');
+}
+
+function selectLevel(level, btn) {
+  selectedLevel = level;
+  document.querySelectorAll('#level-chips .filter-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function closeLevelModal(e) {
+  if (!e || e.target === document.getElementById('level-modal')) {
+    document.getElementById('level-modal').classList.remove('open');
+  }
+}
+
+function confirmLevelStart() {
+  document.getElementById('level-modal').classList.remove('open');
+  startWordTest(pendingTestMode);
+}
+
+function selectImportLevel(level, btn) {
+  importLevel = level;
+  document.querySelectorAll('#import-level-chips .filter-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ─────────────────────────────────────────
 // WORD TEST
 // ─────────────────────────────────────────
 function startWordTest(mode = 'all') {
@@ -494,7 +554,9 @@ function startWordTest(mode = 'all') {
 }
 
 function pickNextWord() {
-  const pool = testMode === 'custom' ? allWords.filter(w => w.isCustom) : allWords;
+  let pool = testMode === 'custom' ? allWords.filter(w => w.isCustom) : allWords;
+  if (selectedLevel !== 'all') pool = pool.filter(w => (w.level || 1) === Number(selectedLevel));
+  if (!pool.length) pool = allWords;
   if (!pool.length) return allWords[Math.floor(Math.random() * allWords.length)];
   const due = pool.filter(w => isDue(w) && getStatus(w) !== 'new');
   if (due.length) return due[Math.floor(Math.random() * due.length)];
@@ -630,8 +692,7 @@ function showSentenceQuestion() {
   document.getElementById('st-prog-fill').style.width = pct+'%';
   document.getElementById('st-score').textContent = `正解 ${sentenceSessionCorrect}/${sentenceSessionIdx}`;
 
-  const html = q.sentence.replace('_____', '<span class="blank">_____</span>');
-  document.getElementById('st-sentence').innerHTML = html;
+  document.getElementById('st-sentence').innerHTML = sentenceToClickableWords(q.sentence);
   document.getElementById('st-ja').textContent = q.translation;
   document.getElementById('st-ja').classList.remove('show');
   document.getElementById('st-result').classList.remove('show','correct','wrong');
@@ -671,6 +732,16 @@ function selectSentenceChoice(btn, selected, answer) {
   document.getElementById('st-next-area').style.display = 'block';
   sentenceSessionIdx++;
   document.getElementById('st-score').textContent = `正解 ${sentenceSessionCorrect}/${sentenceSessionIdx}`;
+}
+
+function sentenceToClickableWords(sentence) {
+  const process = str => str.split(/(\s+)/).map(token => {
+    if (/^\s+$/.test(token) || !token) return token;
+    const spoken = token.replace(/[.,!?;:'"()\[\]]/g, '').trim();
+    if (!spoken) return token;
+    return `<span class="word-tap" onclick="speak('${spoken.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">${token}</span>`;
+  }).join('');
+  return sentence.split('_____').map(p => process(p)).join('<span class="blank">_____</span>');
 }
 
 function speakSentence() {
@@ -848,7 +919,7 @@ function bulkImport() {
     const meaning = parts.slice(1).join(',').trim();
     if (!word || !meaning) { errors++; return; }
     if (allWords.find(w => w.word === word)) { skipped++; return; }
-    customWords.push({ id: Date.now() + Math.random(), word, meaning, pos:'', pron:'', usage:'', example:'', exampleJa:'', category:'マイ単語', isCustom: true });
+    customWords.push({ id: Date.now() + Math.random(), word, meaning, pos:'', pron:'', usage:'', example:'', exampleJa:'', category:'マイ単語', level: importLevel, isCustom: true });
     added++;
   });
   rebuildAllWords();
