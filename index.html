@@ -178,7 +178,10 @@
   <div class="card">
     <div class="form-group">
       <label class="form-label">英単語 *</label>
-      <input class="form-input" id="add-word" placeholder="例: persevere" autocapitalize="none" autocorrect="off">
+      <div style="display:flex;gap:8px">
+        <input class="form-input" id="add-word" placeholder="例: persevere" autocapitalize="none" autocorrect="off" style="flex:1">
+        <button id="ai-fill-btn" class="btn btn-primary" style="flex-shrink:0;white-space:nowrap" onclick="aiAutoFill()">AI補完</button>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">発音記号</label>
@@ -209,6 +212,15 @@
       <input class="form-input" id="add-category" placeholder="例: 学術 / 環境 / 経済">
     </div>
     <button class="btn btn-primary" onclick="addCustomWord()" style="margin-top:4px">追加する ＋</button>
+  </div>
+
+  <div class="card" style="margin-top:4px">
+    <div class="section-label" style="margin-bottom:8px">Claude APIキー</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.6">AI補完機能に使用。このデバイスにのみ保存されます。</p>
+    <div style="display:flex;gap:8px">
+      <input class="form-input" id="api-key-input" type="password" placeholder="sk-ant-..." style="flex:1;font-family:monospace;font-size:13px">
+      <button class="btn btn-primary" style="flex-shrink:0" onclick="saveApiKey()">保存</button>
+    </div>
   </div>
 
   <div class="menu-card" onclick="showView('import')" style="margin-top:4px">
@@ -1114,6 +1126,70 @@ function importFromPaste() {
   } catch {
     showToast('形式が正しくありません。バックアップのテキストをそのまま貼り付けてください');
   }
+}
+
+// ─────────────────────────────────────────
+// AI AUTO-FILL
+// ─────────────────────────────────────────
+function saveApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key) { showToast('APIキーを入力してください'); return; }
+  localStorage.setItem('claude_api_key', key);
+  document.getElementById('api-key-input').value = '';
+  showToast('APIキーを保存しました');
+}
+
+async function aiAutoFill() {
+  const apiKey = localStorage.getItem('claude_api_key');
+  if (!apiKey) { showToast('先にAPIキーを保存してください'); return; }
+  const word = (document.getElementById('add-word').value || '').trim();
+  if (!word) { showToast('英単語を入力してください'); return; }
+
+  const btn = document.getElementById('ai-fill-btn');
+  btn.textContent = '生成中...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 512,
+        messages: [{
+          role: 'user',
+          content: `IELTS単語「${word}」のデータをJSON形式で返してください。他のテキストは不要です。
+{"pron":"IPA発音記号","pos":"品詞（日本語）","meaning":"日本語の意味（簡潔に）","usage":"用法・ポイント（日本語、IELTS文脈で1〜2文）","example":"英語の例文（IELTS風）","exampleJa":"例文の日本語訳","category":"学術/環境/経済/社会/科学のいずれか"}`
+        }]
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || res.status);
+    }
+
+    const data = await res.json();
+    const json = JSON.parse(data.content[0].text);
+    document.getElementById('add-pron').value      = json.pron      || '';
+    document.getElementById('add-pos').value       = json.pos       || '';
+    document.getElementById('add-meaning').value   = json.meaning   || '';
+    document.getElementById('add-usage').value     = json.usage     || '';
+    document.getElementById('add-example').value   = json.example   || '';
+    document.getElementById('add-example-ja').value= json.exampleJa || '';
+    document.getElementById('add-category').value  = json.category  || '';
+    showToast('AI補完完了');
+  } catch(e) {
+    showToast('失敗: ' + e.message);
+  }
+
+  btn.textContent = 'AI補完';
+  btn.disabled = false;
 }
 
 // ─────────────────────────────────────────
