@@ -25,6 +25,15 @@
     </div>
   </div>
 
+  <div id="backup-reminder" style="display:none;background:rgba(255,149,0,0.12);border:1.5px solid rgba(255,149,0,0.3);border-radius:14px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px">
+    <span style="font-size:20px;flex-shrink:0">⚠️</span>
+    <div style="flex:1">
+      <div style="font-size:14px;font-weight:600;color:var(--warning)">バックアップを忘れずに</div>
+      <div id="backup-reminder-text" style="font-size:12px;color:var(--text2);margin-top:2px"></div>
+    </div>
+    <button onclick="showView('add');document.getElementById('backup-reminder').style.display='none'" style="background:var(--warning);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;flex-shrink:0">今すぐ</button>
+  </div>
+
   <div class="stats-grid" id="stats-grid"></div>
 
   <div class="card" style="margin-bottom:12px">
@@ -1112,6 +1121,8 @@ function exportData() {
   out.value = raw;
   area.style.display = 'block';
   out.select();
+  localStorage.setItem('last_backup', today());
+  document.getElementById('backup-reminder').style.display = 'none';
   showToast('テキストをコピーしてメモ帳などに保存してください');
 }
 
@@ -1247,10 +1258,30 @@ function showToast(msg) {
 }
 
 // ─────────────────────────────────────────
+// BACKUP REMINDER
+// ─────────────────────────────────────────
+function checkBackupReminder() {
+  const last = localStorage.getItem('last_backup');
+  const el = document.getElementById('backup-reminder');
+  const txt = document.getElementById('backup-reminder-text');
+  if (!last) {
+    txt.textContent = 'まだバックアップがありません。進捗が消えると復元できません。';
+    el.style.display = 'flex';
+    return;
+  }
+  const days = Math.floor((new Date(today()) - new Date(last)) / 86400000);
+  if (days >= 7) {
+    txt.textContent = `前回のバックアップから${days}日経過しています。`;
+    el.style.display = 'flex';
+  }
+}
+
+// ─────────────────────────────────────────
 // INIT
 // ─────────────────────────────────────────
 loadData();
 renderHome();
+checkBackupReminder();
 </script>
 </body>
 </html>
