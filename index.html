@@ -794,19 +794,25 @@ function selectSentenceChoice(btn, selected, answer) {
     btn.classList.add('correct');
     showResult('st-result', true, '正解！ ✓');
     sentenceMasteredIds.add(q.id);
-    // 正解: 次回セッションに持ち越し（今日は二度と出ない）
-    const sp = sentenceProgress[q.id] || { interval: 0 };
-    sp.interval = Math.min((sp.interval || 0) + 1, 7); // 最大7日
-    sp.dueDate = addDays(today(), sp.interval);
-    sentenceProgress[q.id] = sp;
+    // 単語テストと同じSM-2で進捗更新
+    const def = { rep: 0, ef: 2.5, interval: 0 };
+    const sp = { ...def, ...(sentenceProgress[q.id] || {}) };
+    const result = sm2(4, sp.rep, sp.ef, sp.interval);
+    sentenceProgress[q.id] = { rep: result.rep, ef: result.ef, interval: result.interval, dueDate: addDays(today(), result.interval) };
     saveData();
+    // 今日は再出題しない
     sentenceQueue.splice(sentenceSessionIdx, 1);
     if (sentenceSessionIdx >= sentenceQueue.length) sentenceSessionIdx = 0;
   } else {
     btn.classList.add('wrong');
     showResult('st-result', false, `不正解。正解は「${answer}」`);
-    // 不正解: 今日のキューに残る（interval リセット）
-    if (sentenceProgress[q.id]) sentenceProgress[q.id].interval = 0;
+    // 不正解もSM-2で記録（intervalリセット、EF下がる）
+    const def = { rep: 0, ef: 2.5, interval: 0 };
+    const sp = { ...def, ...(sentenceProgress[q.id] || {}) };
+    const result = sm2(2, sp.rep, sp.ef, sp.interval);
+    sentenceProgress[q.id] = { rep: result.rep, ef: result.ef, interval: result.interval, dueDate: today() };
+    saveData();
+    // 今日のキューに残す
     sentenceSessionIdx++;
     if (sentenceSessionIdx >= sentenceQueue.length) sentenceSessionIdx = 0;
   }
