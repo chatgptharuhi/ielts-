@@ -407,17 +407,18 @@ let selectedSentenceLevel = 'all';
 let pendingTestMode = 'all';
 let levelSelectorTarget = 'word'; // 'word' | 'sentence'
 let importLevel = 1;
+let sentenceProgress = {}; // { [id]: { dueDate, interval } }
 
 function loadData() {
   try {
     const raw = localStorage.getItem(STORE);
-    if (raw) { const d = JSON.parse(raw); progress = d.progress||{}; customWords = d.customWords||[]; }
+    if (raw) { const d = JSON.parse(raw); progress = d.progress||{}; customWords = d.customWords||[]; sentenceProgress = d.sentenceProgress||{}; }
   } catch(e) {}
   rebuildAllWords();
 }
 
 function saveData() {
-  localStorage.setItem(STORE, JSON.stringify({ progress, customWords }));
+  localStorage.setItem(STORE, JSON.stringify({ progress, customWords, sentenceProgress }));
 }
 
 function rebuildAllWords() {
@@ -723,12 +724,24 @@ function showWordDetailInResult() {
 // ─────────────────────────────────────────
 // SENTENCE TEST
 // ─────────────────────────────────────────
+function isSentenceDue(s) {
+  const p = sentenceProgress[s.id];
+  if (!p || !p.dueDate) return true;  // 未学習は常に出題
+  return p.dueDate <= today();
+}
+
 function startSentenceTest() {
   let pool = [...window.SENTENCES];
   if (selectedSentenceLevel !== 'all') pool = pool.filter(s => (s.level || 1) === Number(selectedSentenceLevel));
   if (!pool.length) pool = [...window.SENTENCES];
-  sentenceQueue = shuffle(pool);
-  sentenceTotalCount = pool.length;
+  // 今日が期限のものだけ出題（未学習含む）
+  let due = pool.filter(s => isSentenceDue(s));
+  if (!due.length) {
+    // 全部クリア済みの場合は全問出す
+    due = pool;
+  }
+  sentenceQueue = shuffle(due);
+  sentenceTotalCount = due.length;
   sentenceMasteredIds = new Set();
   sentenceSessionIdx = 0;
   sentenceSessionCorrect = 0;
@@ -737,14 +750,13 @@ function startSentenceTest() {
 }
 
 function showSentenceQuestion() {
-  if (sentenceQueue.length === 0) {
+  // 全問を一度は正解したら完了
+  if (sentenceMasteredIds.size >= sentenceTotalCount) {
     showSentenceComplete();
     return;
   }
   if (sentenceSessionIdx >= sentenceQueue.length) {
-    // 残りの不正解問題をシャッフルして再挑戦
     sentenceSessionIdx = 0;
-    sentenceQueue = shuffle([...sentenceQueue]);
   }
   const q = sentenceQueue[sentenceSessionIdx];
   const masteredCount = sentenceMasteredIds.size;
@@ -782,12 +794,21 @@ function selectSentenceChoice(btn, selected, answer) {
     btn.classList.add('correct');
     showResult('st-result', true, '正解！ ✓');
     sentenceMasteredIds.add(q.id);
-    sentenceQueue.splice(sentenceSessionIdx, 1); // 正解はキューから除去
+    // 正解: 次回セッションに持ち越し（今日は二度と出ない）
+    const sp = sentenceProgress[q.id] || { interval: 0 };
+    sp.interval = Math.min((sp.interval || 0) + 1, 7); // 最大7日
+    sp.dueDate = addDays(today(), sp.interval);
+    sentenceProgress[q.id] = sp;
+    saveData();
+    sentenceQueue.splice(sentenceSessionIdx, 1);
     if (sentenceSessionIdx >= sentenceQueue.length) sentenceSessionIdx = 0;
   } else {
     btn.classList.add('wrong');
     showResult('st-result', false, `不正解。正解は「${answer}」`);
-    sentenceSessionIdx++; // 不正解はキューに残したまま次へ
+    // 不正解: 今日のキューに残る（interval リセット）
+    if (sentenceProgress[q.id]) sentenceProgress[q.id].interval = 0;
+    sentenceSessionIdx++;
+    if (sentenceSessionIdx >= sentenceQueue.length) sentenceSessionIdx = 0;
   }
   document.getElementById('st-ja').classList.add('show');
   document.getElementById('st-exp-text').textContent = q.explanation || '';
@@ -839,8 +860,8 @@ function showSentenceComplete() {
     <div style="text-align:center;padding:32px 16px">
       <div style="font-size:52px;margin-bottom:12px">🎉</div>
       <div style="font-size:22px;font-weight:700;margin-bottom:8px">全問クリア！</div>
-      <div style="font-size:15px;color:var(--text2);margin-bottom:6px">${sentenceTotalCount}問すべて正解しました</div>
-      <div style="font-size:13px;color:var(--text2);margin-bottom:28px">素晴らしい！</div>
+      <div style="font-size:15px;color:var(--text2);margin-bottom:6px">本日分 ${sentenceTotalCount}問すべて正解！</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:28px">次回は明日以降に出題されます</div>
       <button class="btn btn-primary" style="width:100%;margin-bottom:10px" onclick="openSentenceLevelSelector()">もう一度挑戦 →</button>
       <button class="btn btn-ghost" style="width:100%" onclick="showView('home')">← ホームに戻る</button>
     </div>
