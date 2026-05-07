@@ -396,6 +396,8 @@ let sentenceSessionIdx = 0;
 let currentSentenceQ = null;
 let sentenceSessionCorrect = 0;
 let sentenceQueue = [];
+let sentenceTotalCount = 0;
+let sentenceMasteredIds = new Set();
 let wbFilter = 'all';
 let speechAvailable = typeof speechSynthesis !== 'undefined';
 let allWords = [];   // WORDS + customWords merged
@@ -726,6 +728,8 @@ function startSentenceTest() {
   if (selectedSentenceLevel !== 'all') pool = pool.filter(s => (s.level || 1) === Number(selectedSentenceLevel));
   if (!pool.length) pool = [...window.SENTENCES];
   sentenceQueue = shuffle(pool);
+  sentenceTotalCount = pool.length;
+  sentenceMasteredIds = new Set();
   sentenceSessionIdx = 0;
   sentenceSessionCorrect = 0;
   showView('sentence-test');
@@ -733,15 +737,20 @@ function startSentenceTest() {
 }
 
 function showSentenceQuestion() {
+  if (sentenceQueue.length === 0) {
+    showSentenceComplete();
+    return;
+  }
   if (sentenceSessionIdx >= sentenceQueue.length) {
-    // Reset queue
-    sentenceQueue = shuffle([...window.SENTENCES]);
+    // 残りの不正解問題をシャッフルして再挑戦
     sentenceSessionIdx = 0;
+    sentenceQueue = shuffle([...sentenceQueue]);
   }
   const q = sentenceQueue[sentenceSessionIdx];
-  const pct = Math.round(sentenceSessionIdx / sentenceQueue.length * 100);
-  document.getElementById('st-prog-fill').style.width = pct+'%';
-  document.getElementById('st-score').textContent = `正解 ${sentenceSessionCorrect}/${sentenceSessionIdx}`;
+  const masteredCount = sentenceMasteredIds.size;
+  const pct = Math.round(masteredCount / sentenceTotalCount * 100);
+  document.getElementById('st-prog-fill').style.width = pct + '%';
+  document.getElementById('st-score').textContent = `正解 ${masteredCount} / ${sentenceTotalCount}`;
 
   document.getElementById('st-sentence').innerHTML = sentenceToClickableWords(q.sentence);
   document.getElementById('st-ja').textContent = q.translation;
@@ -772,17 +781,22 @@ function selectSentenceChoice(btn, selected, answer) {
   if (isCorrect) {
     btn.classList.add('correct');
     showResult('st-result', true, '正解！ ✓');
-    sentenceSessionCorrect++;
+    sentenceMasteredIds.add(q.id);
+    sentenceQueue.splice(sentenceSessionIdx, 1); // 正解はキューから除去
+    if (sentenceSessionIdx >= sentenceQueue.length) sentenceSessionIdx = 0;
   } else {
     btn.classList.add('wrong');
     showResult('st-result', false, `不正解。正解は「${answer}」`);
+    sentenceSessionIdx++; // 不正解はキューに残したまま次へ
   }
   document.getElementById('st-ja').classList.add('show');
   document.getElementById('st-exp-text').textContent = q.explanation || '';
   document.getElementById('st-explanation').style.display = 'block';
   document.getElementById('st-next-area').style.display = 'block';
-  sentenceSessionIdx++;
-  document.getElementById('st-score').textContent = `正解 ${sentenceSessionCorrect}/${sentenceSessionIdx}`;
+  const masteredCount = sentenceMasteredIds.size;
+  const pct = Math.round(masteredCount / sentenceTotalCount * 100);
+  document.getElementById('st-score').textContent = `正解 ${masteredCount} / ${sentenceTotalCount}`;
+  document.getElementById('st-prog-fill').style.width = pct + '%';
 }
 
 function sentenceToClickableWords(sentence) {
@@ -818,6 +832,19 @@ function addChoiceWord(word) {
 
 function nextSentence() {
   showSentenceQuestion();
+}
+
+function showSentenceComplete() {
+  document.querySelector('#view-sentence-test .card').innerHTML = `
+    <div style="text-align:center;padding:32px 16px">
+      <div style="font-size:52px;margin-bottom:12px">🎉</div>
+      <div style="font-size:22px;font-weight:700;margin-bottom:8px">全問クリア！</div>
+      <div style="font-size:15px;color:var(--text2);margin-bottom:6px">${sentenceTotalCount}問すべて正解しました</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:28px">素晴らしい！</div>
+      <button class="btn btn-primary" style="width:100%;margin-bottom:10px" onclick="openSentenceLevelSelector()">もう一度挑戦 →</button>
+      <button class="btn btn-ghost" style="width:100%" onclick="showView('home')">← ホームに戻る</button>
+    </div>
+  `;
 }
 
 // ─────────────────────────────────────────
