@@ -308,15 +308,17 @@
   <div class="card">
     <p style="font-size:15px;color:var(--text2);margin-bottom:14px;line-height:1.7">
       IELTS 3500など、本でわからなかった単語をまとめて追加できます。<br>
-      1行に1単語、<strong>単語,意味</strong>の形で入力してください。
+      英単語だけ1行1語でもOK。AIボタンで意味を自動補完できます。
     </p>
     <div style="background:var(--bg);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--text2);line-height:1.8">
-      <strong>入力例：</strong><br>
-      persevere,忍耐強く続ける<br>
+      <strong>入力例（意味なしでもOK）：</strong><br>
+      persevere<br>
       eloquent,雄弁な、表現力豊かな<br>
-      meticulous,几帳面な、細心の注意を払う
+      meticulous
     </div>
-    <textarea class="form-input" id="bulk-input" style="min-height:220px;font-family:monospace;font-size:14px" placeholder="単語,意味&#10;単語,意味&#10;..."></textarea>
+    <textarea class="form-input" id="bulk-input" style="min-height:220px;font-family:monospace;font-size:14px" placeholder="persevere&#10;eloquent&#10;meticulous&#10;（意味なしでもAI補完できます）"></textarea>
+    <button class="btn btn-ghost" id="ai-bulk-btn" onclick="aiBulkFill()" style="width:100%;margin-top:8px">✦ AI意味補完（意味のない行を自動入力）</button>
+    <div id="ai-bulk-progress" style="display:none;font-size:13px;color:var(--text2);text-align:center;margin-top:6px"></div>
     <div style="margin-top:14px;margin-bottom:4px">
       <div class="form-label" style="margin-bottom:8px">レベル（IELTS 3500）</div>
       <div class="filter-row" id="import-level-chips">
@@ -1271,6 +1273,69 @@ function saveApiKey() {
   localStorage.setItem('claude_api_key', key);
   document.getElementById('api-key-input').value = '';
   showToast('APIキーを保存しました');
+}
+
+async function aiBulkFill() {
+  const apiKey = localStorage.getItem('claude_api_key');
+  if (!apiKey) { showToast('先にAPIキーを保存してください（追加タブ → AI設定）'); return; }
+
+  const ta = document.getElementById('bulk-input');
+  const lines = ta.value.split('\n').map(l => l.trim()).filter(l => l);
+  const noMeaning = lines.map((l, i) => ({ idx: i, word: l })).filter(x => !x.word.includes(','));
+
+  if (noMeaning.length === 0) { showToast('意味のない行がありません'); return; }
+
+  const btn = document.getElementById('ai-bulk-btn');
+  const prog = document.getElementById('ai-bulk-progress');
+  btn.disabled = true;
+  prog.style.display = 'block';
+
+  const BATCH = 10;
+  const results = {};
+
+  for (let i = 0; i < noMeaning.length; i += BATCH) {
+    const batch = noMeaning.slice(i, i + BATCH);
+    prog.textContent = `処理中... ${Math.min(i + BATCH, noMeaning.length)} / ${noMeaning.length}`;
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 512,
+          messages: [{
+            role: 'user',
+            content: `以下のIELTS英単語の日本語の意味を簡潔に返してください。JSON配列形式のみ、余分なテキスト不要。
+[${batch.map(x => `"${x.word}"`).join(',')}]
+返答形式: [{"word":"...","meaning":"日本語の意味（簡潔に）"},...]`
+          }]
+        })
+      });
+      if (!res.ok) throw new Error(res.status);
+      const data = await res.json();
+      const raw = data.content[0].text.replace(/^```json\s*/i,'').replace(/```\s*$/,'').trim();
+      JSON.parse(raw).forEach(item => { results[item.word.toLowerCase()] = item.meaning; });
+    } catch(e) {
+      showToast(`バッチ${Math.floor(i/BATCH)+1}でエラー: ${e.message}`);
+    }
+  }
+
+  const newLines = lines.map(l => {
+    if (l.includes(',')) return l;
+    const word = l.trim().toLowerCase();
+    return results[word] ? `${l},${results[word]}` : l;
+  });
+  ta.value = newLines.join('\n');
+
+  const filled = Object.keys(results).length;
+  prog.textContent = `完了: ${filled} / ${noMeaning.length}語の意味を補完しました`;
+  btn.disabled = false;
+  setTimeout(() => { prog.style.display = 'none'; }, 4000);
 }
 
 async function aiAutoFill() {
