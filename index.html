@@ -410,6 +410,7 @@ let pendingTestMode = 'all';
 let levelSelectorTarget = 'word'; // 'word' | 'sentence'
 let importLevel = 1;
 let sentenceProgress = {}; // { [id]: { dueDate, interval } }
+let _bulkAiCache = {}; // { word: { pron, pos, meaning, usage, example, exampleJa, category } }
 
 function loadData() {
   try {
@@ -1031,11 +1032,13 @@ function bulkImport() {
     const meaning = parts.slice(1).join(',').trim();
     if (!word || !meaning) { errors++; return; }
     if (allWords.find(w => w.word === word)) { skipped++; return; }
-    customWords.push({ id: Date.now() + Math.random(), word, meaning, pos:'', pron:'', usage:'', example:'', exampleJa:'', category:'マイ単語', level: importLevel, isCustom: true });
+    const ai = _bulkAiCache[word] || {};
+    customWords.push({ id: Date.now() + Math.random(), word, meaning: ai.meaning || meaning, pos: ai.pos || '', pron: ai.pron || '', usage: ai.usage || '', example: ai.example || '', exampleJa: ai.exampleJa || '', category: ai.category || 'マイ単語', level: importLevel, isCustom: true });
     added++;
   });
   rebuildAllWords();
   saveData();
+  _bulkAiCache = {};
   document.getElementById('bulk-input').value = '';
   const res = document.getElementById('import-result');
   res.style.display = 'block';
@@ -1281,21 +1284,23 @@ async function aiBulkFill() {
 
   const ta = document.getElementById('bulk-input');
   const lines = ta.value.split('\n').map(l => l.trim()).filter(l => l);
-  const noMeaning = lines.map((l, i) => ({ idx: i, word: l })).filter(x => !x.word.includes(','));
+  const noDetail = lines.map((l, i) => ({ idx: i, word: l.split(',')[0].trim() }))
+    .filter(x => !lines[x.idx].includes(',') || !_bulkAiCache[x.word.toLowerCase()]);
+  const targets = lines.map((l, i) => ({ idx: i, word: l.split(',')[0].trim() }))
+    .filter(x => !_bulkAiCache[x.word.toLowerCase()]);
 
-  if (noMeaning.length === 0) { showToast('意味のない行がありません'); return; }
+  if (targets.length === 0) { showToast('全語補完済みです'); return; }
 
   const btn = document.getElementById('ai-bulk-btn');
   const prog = document.getElementById('ai-bulk-progress');
   btn.disabled = true;
   prog.style.display = 'block';
 
-  const BATCH = 10;
-  const results = {};
+  const BATCH = 5;
 
-  for (let i = 0; i < noMeaning.length; i += BATCH) {
-    const batch = noMeaning.slice(i, i + BATCH);
-    prog.textContent = `処理中... ${Math.min(i + BATCH, noMeaning.length)} / ${noMeaning.length}`;
+  for (let i = 0; i < targets.length; i += BATCH) {
+    const batch = targets.slice(i, i + BATCH);
+    prog.textContent = `処理中... ${Math.min(i + BATCH, targets.length)} / ${targets.length}語`;
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -1307,19 +1312,22 @@ async function aiBulkFill() {
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 512,
+          max_tokens: 1024,
           messages: [{
             role: 'user',
-            content: `以下のIELTS英単語の日本語の意味を簡潔に返してください。JSON配列形式のみ、余分なテキスト不要。
-[${batch.map(x => `"${x.word}"`).join(',')}]
-返答形式: [{"word":"...","meaning":"日本語の意味（簡潔に）"},...]`
+            content: `以下のIELTS英単語のデータをJSON配列で返してください。余分なテキスト不要。
+単語リスト: [${batch.map(x => `"${x.word}"`).join(',')}]
+返答形式:
+[{"word":"...","pron":"IPA発音記号","pos":"品詞（日本語）","meaning":"日本語の意味（簡潔に）","usage":"用法・ポイント（IELTS文脈で1文）","example":"英語例文（IELTS風）","exampleJa":"例文の日本語訳","category":"学術/環境/経済/社会/科学のいずれか"},...]`
           }]
         })
       });
       if (!res.ok) throw new Error(res.status);
       const data = await res.json();
       const raw = data.content[0].text.replace(/^```json\s*/i,'').replace(/```\s*$/,'').trim();
-      JSON.parse(raw).forEach(item => { results[item.word.toLowerCase()] = item.meaning; });
+      JSON.parse(raw).forEach(item => {
+        _bulkAiCache[item.word.toLowerCase()] = item;
+      });
     } catch(e) {
       showToast(`バッチ${Math.floor(i/BATCH)+1}でエラー: ${e.message}`);
     }
@@ -1328,14 +1336,15 @@ async function aiBulkFill() {
   const newLines = lines.map(l => {
     if (l.includes(',')) return l;
     const word = l.trim().toLowerCase();
-    return results[word] ? `${l},${results[word]}` : l;
+    const c = _bulkAiCache[word];
+    return c ? `${l},${c.meaning}` : l;
   });
   ta.value = newLines.join('\n');
 
-  const filled = Object.keys(results).length;
-  prog.textContent = `完了: ${filled} / ${noMeaning.length}語の意味を補完しました`;
+  const filled = Object.keys(_bulkAiCache).length;
+  prog.textContent = `完了: ${targets.length}語の詳細を補完しました（インポート時に全フィールド反映）`;
   btn.disabled = false;
-  setTimeout(() => { prog.style.display = 'none'; }, 4000);
+  setTimeout(() => { prog.style.display = 'none'; }, 5000);
 }
 
 async function aiAutoFill() {
