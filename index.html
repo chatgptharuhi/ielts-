@@ -1110,6 +1110,17 @@ function renderBrain() {
   }
   const maxDay = Math.max(...last7.map(d => d.count), 1);
 
+  // 苦手文章問題: EF低い順、1回以上試行済みのみ、TOP5
+  const weakSentences = window.SENTENCES
+    .map(s => {
+      const sp = sentenceProgress[s.id];
+      if (!sp || (sp.rep || 0) < 1) return null;
+      return { ...s, ef: sp.ef || 2.5, rep: sp.rep || 0 };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.ef - b.ef)
+    .slice(0, 5);
+
   // ── HTML生成 ──
   const topWordsHtml = weakWords.length === 0
     ? `<div style="padding:24px;text-align:center;color:var(--text2);font-size:14px">単語テストを重ねるとここに苦手単語が表示されます</div>`
@@ -1140,6 +1151,24 @@ function renderBrain() {
             <div class="progress-fill" style="width:${pct}%;background:${color}"></div>
           </div>
           <div style="font-size:11px;color:var(--text2);margin-top:3px">正解 ${c.correct} / 不正解 ${c.wrong}（計 ${c.total}回）</div>
+        </div>`;
+      }).join('');
+
+  const weakSentencesHtml = weakSentences.length === 0
+    ? `<div style="padding:24px;text-align:center;color:var(--text2);font-size:14px">文章問題を解くとここに苦手問題が表示されます</div>`
+    : weakSentences.map((s, i) => {
+        const efColor = s.ef <= 1.6 ? 'var(--error)' : s.ef <= 2.0 ? 'var(--warning)' : 'var(--text2)';
+        const shortSentence = s.sentence.replace('_____', `[${s.answer}]`);
+        return `<div class="brain-row">
+          <div class="brain-rank">${i + 1}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--primary)">${s.answer}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${shortSentence}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;margin-left:8px">
+            <div style="font-size:13px;font-weight:700;color:${efColor}">EF ${s.ef.toFixed(2)}</div>
+            <div style="font-size:11px;color:var(--text2)">${s.rep}回試行</div>
+          </div>
         </div>`;
       }).join('');
 
@@ -1180,6 +1209,11 @@ function renderBrain() {
       苦手単語 TOP${weakWords.length}
     </div>
     <div class="wb-card" style="margin-bottom:16px">${topWordsHtml}</div>
+
+    <div style="font-size:15px;font-weight:700;margin-bottom:8px">
+      苦手文章問題 TOP${weakSentences.length}
+    </div>
+    <div class="wb-card" style="margin-bottom:16px">${weakSentencesHtml}</div>
 
     <div style="font-size:15px;font-weight:700;margin-bottom:12px">
       カテゴリ別 正答率
