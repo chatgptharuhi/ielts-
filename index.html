@@ -392,6 +392,7 @@ let customWords = [];
 let currentWord = null;
 let wordSessionCount = 0;
 let wordSessionCorrect = 0;
+let wordSessionHistory = new Set();  // セッション内で既に出題した単語
 let sentenceSessionIdx = 0;
 let currentSentenceQ = null;
 let sentenceSessionCorrect = 0;
@@ -600,6 +601,7 @@ function startWordTest(mode = 'all') {
   }
   wordSessionCount = 0;
   wordSessionCorrect = 0;
+  wordSessionHistory = new Set();  // セッション初期化
   showView('word-test');
   nextWord();
 }
@@ -608,7 +610,11 @@ function pickNextWord() {
   let pool = testMode === 'custom' ? allWords.filter(w => w.isCustom) : allWords;
   if (selectedLevel !== 'all') pool = pool.filter(w => (w.level || 1) === Number(selectedLevel));
   if (!pool.length) pool = allWords;
-  if (!pool.length) return allWords[Math.floor(Math.random() * allWords.length)];
+
+  // セッション内で既に出題した単語を除外
+  pool = pool.filter(w => !wordSessionHistory.has(w.word));
+
+  if (!pool.length) return null;  // 全て出題済みならnull
   const due = pool.filter(w => isDue(w) && getStatus(w) !== 'new');
   if (due.length) return due[Math.floor(Math.random() * due.length)];
   const newW = pool.filter(w => getStatus(w) === 'new');
@@ -618,6 +624,12 @@ function pickNextWord() {
 
 function nextWord() {
   currentWord = pickNextWord();
+  if (!currentWord) {
+    showToast('すべての単語を出題しました！');
+    showView('home');
+    return;
+  }
+  wordSessionHistory.add(currentWord.word);  // 出題済みに記録
   wordSessionCount++;
   renderWordCard();
 }
