@@ -1023,8 +1023,9 @@ async function bulkImport() {
 
   const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(l => l);
   const apiKey = localStorage.getItem('claude_api_key');
-
   let added = 0, skipped = 0, errors = 0;
+
+  showToast(`${lines.length}語を処理中...（時間がかかる場合があります）`);
 
   for (const line of lines) {
     const parts = line.split(',');
@@ -1046,22 +1047,20 @@ async function bulkImport() {
           },
           body: JSON.stringify({
             model: 'claude-haiku-4-5-20251001',
-            max_tokens: 256,
+            max_tokens: 100,
             messages: [{
               role: 'user',
-              content: `IELTS単語「${word}」の簡潔な日本語意味（1〜2語）だけを返してください。他のテキストは不要です。`
+              content: `「${word}」の意味を日本語で1〜2語で返してください。`
             }]
           })
         });
 
         if (response.ok) {
           const data = await response.json();
-          meaning = data.content[0].text.trim();
-        } else {
-          errors++; continue;
+          meaning = data.content[0].text.trim().replace(/^「|」$/g, '');
         }
       } catch (e) {
-        errors++; continue;
+        console.error('API error for', word, e);
       }
     }
 
