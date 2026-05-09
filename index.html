@@ -387,6 +387,7 @@
 // STATE
 // ─────────────────────────────────────────
 const STORE = 'ielts_v2';
+const WORDS_PER_SESSION = 20;  // 1セッション = 20単語
 let progress = {};   // { word: { status, streak, totalCorrect, totalWrong, lastSeen } }
 let customWords = [];
 let currentWord = null;
@@ -623,9 +624,18 @@ function pickNextWord() {
 }
 
 function nextWord() {
+  // セッション内で20単語出題済みならセッション終了
+  if (wordSessionCount >= WORDS_PER_SESSION) {
+    const msg = `${WORDS_PER_SESSION}問完了！正解: ${wordSessionCorrect}/${WORDS_PER_SESSION}`;
+    showToast(msg);
+    showView('home');
+    return;
+  }
+
   currentWord = pickNextWord();
   if (!currentWord) {
-    showToast('すべての単語を出題しました！');
+    const msg = `${WORDS_PER_SESSION}問完了！正解: ${wordSessionCorrect}/${WORDS_PER_SESSION}`;
+    showToast(msg);
     showView('home');
     return;
   }
@@ -650,7 +660,7 @@ function renderWordCard() {
 }
 
 function updateWtProgress() {
-  document.getElementById('wt-score').textContent = `スコア: ${wordSessionCorrect}`;
+  document.getElementById('wt-score').textContent = `スコア: ${wordSessionCorrect}/${WORDS_PER_SESSION}`;
   const s = getStatus(currentWord);
   const badge = document.getElementById('wt-label');
   badge.textContent = s==='new' ? '⚪ 新規' : s==='learning' ? '🟡 学習中' : '🟢 習得済み';
