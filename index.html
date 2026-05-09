@@ -691,10 +691,9 @@ function generateChoices(word, words) {
   // マイ単語モードで6語以上あれば同プールから、足りなければ全単語から補填
   const customPool = allWords.filter(w => w.isCustom);
   const choiceBase = (testMode === 'custom' && customPool.length >= 6) ? customPool : allWords;
+  // 品詞が同じ選択肢を優先的に使用（混ぜない）
   const samePos = shuffle(choiceBase.filter(w => w.word !== word.word && w.pos === word.pos));
-  const diffPos = shuffle(choiceBase.filter(w => w.word !== word.word && w.pos !== word.pos));
-  const pool = [...samePos, ...diffPos].slice(0, 5);
-  const wrong = pool.map(w => ({ meaning: w.meaning, isCorrect: false }));
+  const wrong = samePos.slice(0, 5).map(w => ({ meaning: w.meaning, isCorrect: false }));
   return shuffle([correct, ...wrong]);
 }
 
