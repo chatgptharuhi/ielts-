@@ -91,9 +91,10 @@
 <div id="view-word-test" class="view">
   <div class="wt-header">
     <span class="status-badge new" id="wt-label">⚪ 新規</span>
-    <div style="display:flex;align-items:center;gap:8px">
+    <div style="display:flex;align-items:center;gap:12px">
       <span id="wt-mode" style="font-size:11px;font-weight:700;color:var(--warning);background:rgba(255,149,0,0.1);padding:3px 10px;border-radius:99px;display:none"></span>
-      <span style="font-size:13px;font-weight:700;color:var(--text2)" id="wt-score">スコア: 0</span>
+      <span style="font-size:13px;font-weight:700;color:var(--text2)" id="wt-progress">問0/20</span>
+      <span style="font-size:13px;font-weight:700;color:var(--text2)" id="wt-score">スコア: 0/20</span>
     </div>
   </div>
 
@@ -660,6 +661,7 @@ function renderWordCard() {
 }
 
 function updateWtProgress() {
+  document.getElementById('wt-progress').textContent = `問${wordSessionCount}/${WORDS_PER_SESSION}`;
   document.getElementById('wt-score').textContent = `スコア: ${wordSessionCorrect}/${WORDS_PER_SESSION}`;
   const s = getStatus(currentWord);
   const badge = document.getElementById('wt-label');
